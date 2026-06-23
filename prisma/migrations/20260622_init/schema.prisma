@@ -1,0 +1,248 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ===== Full schema snapshot =====
+// (copied from current prisma/schema.prisma)
+
+model User {
+  id                    String   @id @default(uuid())
+  email                 String   @unique
+  password              String
+  firstName             String
+  lastName              String
+  phone                 String?
+  avatar                String?
+  roleId                String
+  role                  Role     @relation(fields: [roleId], references: [id])
+  schoolId              String?
+  school                School?  @relation(fields: [schoolId], references: [id])
+  isActive              Boolean  @default(true)
+  lastLogin             DateTime?
+  twoFactorEnabled      Boolean  @default(false)
+  twoFactorSecret       String?
+  sessionTokens         String[] @default([])
+  refreshTokens         RefreshToken[]
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  student               Student?
+  teacher               Teacher?
+  parent                Parent?
+  accountant            Accountant?
+  librarian             Librarian?
+  hostelManager         HostelManager?
+  transportManager      TransportManager?
+  auditLogs             AuditLog[]
+  sentMessages          Message[] @relation("sender")
+  receivedMessages      Message[] @relation("receiver")
+  notifications         Notification[]
+  attendanceRecords     Attendance[]
+
+  @@index([roleId])
+  @@index([schoolId])
+  @@index([email])
+}
+
+model Role {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  users       User[]
+  permissions RolePermission[]
+  createdAt   DateTime @default(now())
+
+  @@index([name])
+}
+
+model Permission {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  roles       RolePermission[]
+  createdAt   DateTime @default(now())
+}
+
+model RolePermission {
+  roleId        String
+  permissionId  String
+  role          Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission    Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  revoked   Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([token])
+}
+
+model School {
+  id              String   @id @default(uuid())
+  name            String
+  address         String?
+  city            String?
+  state           String?
+  country         String?
+  contactEmail    String?
+  contactPhone    String?
+  website         String?
+  logo            String?
+  settings        Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  users           User[]
+  classes         Class[]
+  subjects        Subject[]
+  sessions        Session[]
+  students        Student[]
+  teachers        Teacher[]
+  parents         Parent[]
+  fees            Fee[]
+  hostels         Hostel[]
+  transportRoutes TransportRoute[]
+
+  @@index([name])
+}
+
+model Session {
+  id          String   @id @default(uuid())
+  schoolId    String
+  school      School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  name        String
+  startDate   DateTime
+  endDate     DateTime
+  active      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  terms       Term[]
+  exams       Exam[]
+
+  @@index([schoolId])
+  @@index([active])
+}
+
+model Term {
+  id          String   @id @default(uuid())
+  sessionId   String
+  session     Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  name        String
+  startDate   DateTime
+  endDate     DateTime
+  createdAt   DateTime @default(now())
+
+  @@index([sessionId])
+}
+
+model Class {
+  id          String   @id @default(uuid())
+  schoolId    String
+  school      School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  name        String
+  level       String
+  capacity    Int      @default(50)
+  createdAt   DateTime @default(now())
+  students    Student[]
+  subjects    Subject[]
+  attendance  Attendance[]
+  timetable   Timetable[]
+  assignments Assignment[]
+  exams       Exam[]
+
+  @@index([schoolId])
+}
+
+model Subject {
+  id          String   @id @default(uuid())
+  schoolId    String
+  school      School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  classId     String
+  class       Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  teacherId   String?
+  teacher     Teacher? @relation(fields: [teacherId], references: [id])
+  code        String
+  name        String
+  description String?
+  creditHours Int?
+  createdAt   DateTime @default(now())
+  assignments Assignment[]
+  exams       Exam[]
+  results     Result[]
+
+  @@index([schoolId])
+  @@index([classId])
+  @@index([teacherId])
+}
+
+model Timetable {
+  id          String   @id @default(uuid())
+  classId     String
+  class       Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  day         String
+  startTime   String
+  endTime     String
+  subject     String
+  teacher     String?
+  room        String?
+  createdAt   DateTime @default(now())
+
+  @@index([classId])
+}
+
+model Student {
+  id            String   @id @default(uuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  schoolId      String
+  school        School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  admissionNo   String   @unique
+  classId       String?
+  class         Class?   @relation(fields: [classId], references: [id])
+  parentId      String?
+  parent        Parent?  @relation(fields: [parentId], references: [id])
+  dob           DateTime?
+  gender        String?
+  admissionDate DateTime
+  bloodType     String?
+  address       String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  attendance    Attendance[]
+  submissions   Submission[]
+  examAnswers   ExamAnswer[]
+  results       Result[]
+  feePayments   Payment[]
+
+  @@index([userId])
+  @@index([schoolId])
+  @@index([classId])
+  @@index([admissionNo])
+}
+
+model Teacher {
+  id            String   @id @default(uuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  schoolId      String
+  school        School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  staffNo       String   @unique
+  department    String?
+  hireDate      DateTime
+  qualification String?
+  specialization String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+*** End File

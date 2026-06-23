@@ -1,0 +1,71 @@
+﻿{
+    "compilerOptions": {
+        "target": "es2020",
+        "lib": [
+            "dom",
+            "dom.iterable",
+            "esnext"
+        ],
+        "allowJs": true,
+        "skipLibCheck": true,
+        "strict": true,
+        "forceConsistentCasingInFileNames": true,
+        "noEmit": true,
+        "esModuleInterop": true,
+        "module": "esnext",
+        "moduleResolution": "node10",
+        "downlevelIteration": true,
+        "ignoreDeprecations": "6.0",
+        "resolveJsonModule": true,
+        "isolatedModules": true,
+        "jsx": "preserve",
+        "allowSyntheticDefaultImports": true,
+        "preserveConstEnums": true,
+        "noImplicitAny": true,
+        "noImplicitThis": true,
+        "strictNullChecks": true,
+        "strictFunctionTypes": true,
+        "strictBindCallApply": true,
+        "strictPropertyInitialization": true,
+        "strictBuiltinIteratorReturn": true,
+        "alwaysStrict": true,
+        "useUnknownInCatchVariables": true
+    },
+    "files": [
+        "./src/backend/prismaClient.js",
+        "./src/backend/server.js",
+        "./src/backend/routes/resourceRoutes.js",
+        "./src/frontend/next-env.d.ts",
+        "./src/frontend/postcss.config.js",
+        "./src/frontend/tailwind.config.js",
+        "./src/frontend/components/RoleGate.tsx",
+        "./src/frontend/components/withAuth.tsx",
+        "./src/frontend/components/layout/AppLayout.tsx",
+        "./src/frontend/components/ui/StatCard.tsx",
+        "./src/frontend/lib/api.ts",
+        "./src/frontend/lib/auth.ts",
+        "./src/frontend/lib/navigation.ts",
+        "./src/frontend/lib/useAuth.ts",
+        "./src/frontend/pages/_app.tsx",
+        "./src/frontend/pages/about.tsx",
+        "./src/frontend/pages/dashboard.tsx",
+        "./src/frontend/pages/index.tsx",
+        "./src/frontend/pages/login.tsx",
+        "./src/frontend/pages/accountant/fees.tsx",
+        "./src/frontend/pages/admin/classes.tsx",
+        "./src/frontend/pages/admin/students.tsx",
+        "./src/frontend/pages/admin/teachers.tsx",
+        "./src/frontend/pages/admin/students/[id].tsx",
+        "./src/frontend/pages/parent/index.tsx",
+        "./src/frontend/pages/student/index.tsx",
+        "./src/frontend/pages/super-admin/schools.tsx",
+        "./src/frontend/pages/super-admin/users.tsx",
+        "./src/frontend/pages/teacher/index.tsx"
+    ],
+    "include": [
+        "src/**/*"
+    ],
+    "exclude": [
+        "node_modules"
+    ]
+}

@@ -1,0 +1,286 @@
+Loaded Prisma config from prisma.config.cjs.
+
+Prisma config detected, skipping environment variable loading.
+Prisma schema loaded from prisma\schema.prisma
+Datasource "db": PostgreSQL database "schooldb", schema "public" at "localhost:5432"
+
+- The migration `20260622_init` was modified after it was applied.
+- Drift detected: Your database schema is not in sync with your migration history.
+
+The following is a summary of the differences between the expected database schema given your migrations files, and the actual schema of the database.
+
+It should be understood as the set of changes to get from the expected schema to the actual schema.
+
+[+] Added tables
+  - Accountant
+  - Announcement
+  - Assignment
+  - Attendance
+  - AuditLog
+  - Book
+  - Class
+  - Exam
+  - ExamAnswer
+  - Fee
+  - Hostel
+  - HostelAllocation
+  - HostelManager
+  - Librarian
+  - LibraryTransaction
+  - Message
+  - Notification
+  - Parent
+  - Payment
+  - Permission
+  - Question
+  - QuestionOption
+  - RefreshToken
+  - Result
+  - Role
+  - RolePermission
+  - Room
+  - School
+  - Session
+  - Student
+  - Subject
+  - Submission
+  - Teacher
+  - Term
+  - Timetable
+  - TransportAllocation
+  - TransportManager
+  - TransportRoute
+  - TransportVehicle
+  - User
+
+[*] Changed the `Accountant` table
+  [+] Added unique index on columns (staffNo)
+  [+] Added index on columns (userId)
+  [+] Added unique index on columns (userId)
+  [+] Added foreign key on columns (userId)
+
+[*] Changed the `Assignment` table
+  [+] Added index on columns (classId)
+  [+] Added index on columns (teacherId)
+  [+] Added foreign key on columns (classId)
+  [+] Added foreign key on columns (subjectId)
+  [+] Added foreign key on columns (teacherId)
+
+[*] Changed the `Attendance` table
+  [+] Added index on columns (classId)
+  [+] Added index on columns (date)
+  [+] Added unique index on columns (studentId, classId, date)
+  [+] Added index on columns (studentId)
+  [+] Added foreign key on columns (classId)
+  [+] Added foreign key on columns (markedById)
+  [+] Added foreign key on columns (studentId)
+
+[*] Changed the `AuditLog` table
+  [+] Added index on columns (action)
+  [+] Added index on columns (createdAt)
+  [+] Added index on columns (userId)
+  [+] Added foreign key on columns (userId)
+
+[*] Changed the `Book` table
+  [+] Added index on columns (isbn)
+  [+] Added unique index on columns (isbn)
+  [+] Added index on columns (title)
+
+[*] Changed the `Class` table
+  [+] Added index on columns (schoolId)
+  [+] Added foreign key on columns (schoolId)
+
+[*] Changed the `Exam` table
+  [+] Added index on columns (subjectId)
+  [+] Added index on columns (teacherId)
+  [+] Added foreign key on columns (classId)
+  [+] Added foreign key on columns (sessionId)
+  [+] Added foreign key on columns (subjectId)
+  [+] Added foreign key on columns (teacherId)
+
+[*] Changed the `ExamAnswer` table
+  [+] Added index on columns (examId)
+  [+] Added unique index on columns (examId, studentId, questionId)
+  [+] Added index on columns (studentId)
+  [+] Added foreign key on columns (examId)
+  [+] Added foreign key on columns (questionId)
+  [+] Added foreign key on columns (studentId)
+
+[*] Changed the `Fee` table
+  [+] Added index on columns (schoolId)
+  [+] Added foreign key on columns (schoolId)
+
+[*] Changed the `Hostel` table
+  [+] Added index on columns (schoolId)
+  [+] Added foreign key on columns (schoolId)
+
+[*] Changed the `HostelAllocation` table
+  [+] Added index on columns (roomId)
+  [+] Added foreign key on columns (roomId)
+
+[*] Changed the `HostelManager` table
+  [+] Added unique index on columns (staffNo)
+  [+] Added index on columns (userId)
+  [+] Added unique index on columns (userId)
+  [+] Added foreign key on columns (userId)
+
+[*] Changed the `Librarian` table
+  [+] Added unique index on columns (staffNo)
+  [+] Added index on columns (userId)
+  [+] Added unique index on columns (userId)
+  [+] Added foreign key on columns (userId)
+
+[*] Changed the `LibraryTransaction` table
+  [+] Added index on columns (bookId)
+  [+] Added index on columns (studentId)
+  [+] Added foreign key on columns (bookId)
+
+[*] Changed the `Message` table
+  [+] Added index on columns (read)
+  [+] Added index on columns (receiverId)
+  [+] Added index on columns (senderId)
+  [+] Added foreign key on columns (receiverId)
+  [+] Added foreign key on columns (senderId)
+
+[*] Changed the `Notification` table
+  [+] Added index on columns (read)
+  [+] Added index on columns (userId)
+  [+] Added foreign key on columns (userId)
+
+[*] Changed the `Parent` table
+  [+] Added index on columns (schoolId)
+  [+] Added index on columns (userId)
+  [+] Added unique index on columns (userId)
+  [+] Added foreign key on columns (schoolId)
+  [+] Added foreign key on columns (userId)
+
+[*] Changed the `Payment` table
+  [+] Added index on columns (status)
+  [+] Added index on columns (studentId)
+  [+] Added foreign key on columns (feeId)
+  [+] Added foreign key on columns (studentId)
+
+[*] Changed the `Permission` table
+  [+] Added unique index on columns (name)
+
+[*] Changed the `Question` table
+  [+] Added index on columns (examId)
+  [+] Added foreign key on columns (examId)
+
+[*] Changed the `QuestionOption` table
+  [+] Added index on columns (questionId)
+  [+] Added foreign key on columns (questionId)
+
+[*] Changed the `RefreshToken` table
+  [+] Added index on columns (token)
+  [+] Added unique index on columns (token)
+  [+] Added index on columns (userId)
+  [+] Added foreign key on columns (userId)
+
+[*] Changed the `Result` table
+  [+] Added index on columns (examId)
+  [+] Added unique index on columns (examId, studentId)
+  [+] Added index on columns (studentId)
+  [+] Added foreign key on columns (examId)
+  [+] Added foreign key on columns (studentId)
+  [+] Added foreign key on columns (subjectId)
+
+[*] Changed the `Role` table
+  [+] Added index on columns (name)
+  [+] Added unique index on columns (name)
+
+[*] Changed the `RolePermission` table
+  [+] Added foreign key on columns (permissionId)
+  [+] Added foreign key on columns (roleId)
+
+[*] Changed the `Room` table
+  [+] Added index on columns (hostelId)
+  [+] Added unique index on columns (hostelId, roomNumber)
+  [+] Added foreign key on columns (hostelId)
+
+[*] Changed the `School` table
+  [+] Added index on columns (name)
+
+[*] Changed the `Session` table
+  [+] Added index on columns (active)
+  [+] Added index on columns (schoolId)
+  [+] Added foreign key on columns (schoolId)
+
+[*] Changed the `Student` table
+  [+] Added index on columns (admissionNo)
+  [+] Added unique index on columns (admissionNo)
+  [+] Added index on columns (classId)
+  [+] Added index on columns (schoolId)
+  [+] Added index on columns (userId)
+  [+] Added unique index on columns (userId)
+  [+] Added foreign key on columns (classId)
+  [+] Added foreign key on columns (parentId)
+  [+] Added foreign key on columns (schoolId)
+  [+] Added foreign key on columns (userId)
+
+[*] Changed the `Subject` table
+  [+] Added index on columns (classId)
+  [+] Added index on columns (schoolId)
+  [+] Added index on columns (teacherId)
+  [+] Added foreign key on columns (classId)
+  [+] Added foreign key on columns (schoolId)
+  [+] Added foreign key on columns (teacherId)
+
+[*] Changed the `Submission` table
+  [+] Added index on columns (assignmentId)
+  [+] Added unique index on columns (assignmentId, studentId)
+  [+] Added index on columns (studentId)
+  [+] Added foreign key on columns (assignmentId)
+  [+] Added foreign key on columns (studentId)
+
+[*] Changed the `Teacher` table
+  [+] Added index on columns (schoolId)
+  [+] Added index on columns (staffNo)
+  [+] Added unique index on columns (staffNo)
+  [+] Added index on columns (userId)
+  [+] Added unique index on columns (userId)
+  [+] Added foreign key on columns (schoolId)
+  [+] Added foreign key on columns (userId)
+
+[*] Changed the `Term` table
+  [+] Added index on columns (sessionId)
+  [+] Added foreign key on columns (sessionId)
+
+[*] Changed the `Timetable` table
+  [+] Added index on columns (classId)
+  [+] Added foreign key on columns (classId)
+
+[*] Changed the `TransportAllocation` table
+  [+] Added index on columns (routeId)
+  [+] Added index on columns (vehicleId)
+  [+] Added unique index on columns (vehicleId, routeId)
+  [+] Added foreign key on columns (routeId)
+  [+] Added foreign key on columns (vehicleId)
+
+[*] Changed the `TransportManager` table
+  [+] Added unique index on columns (staffNo)
+  [+] Added index on columns (userId)
+  [+] Added unique index on columns (userId)
+  [+] Added foreign key on columns (userId)
+
+[*] Changed the `TransportRoute` table
+  [+] Added index on columns (schoolId)
+  [+] Added foreign key on columns (schoolId)
+
+[*] Changed the `TransportVehicle` table
+  [+] Added index on columns (registrationNo)
+  [+] Added unique index on columns (registrationNo)
+
+[*] Changed the `User` table
+  [+] Added index on columns (email)
+  [+] Added unique index on columns (email)
+  [+] Added index on columns (roleId)
+  [+] Added index on columns (schoolId)
+  [+] Added foreign key on columns (roleId)
+  [+] Added foreign key on columns (schoolId)
+
+
+We need to reset the "public" schema at "localhost:5432"
+
+You may use prisma migrate reset to drop the development database.
+All data will be lost.

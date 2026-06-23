@@ -1,0 +1,29 @@
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: schooldb
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  backend:
+    build: .
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: "postgresql://postgres:postgres@db:5432/schooldb"
+      JWT_SECRET: "dev_secret_change_me"
+      NODE_ENV: development
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./:/usr/src/app
+      - /usr/src/app/node_modules
+    command: ["node", "src/backend/server.js"]
+
+volumes:
+  db-data:
