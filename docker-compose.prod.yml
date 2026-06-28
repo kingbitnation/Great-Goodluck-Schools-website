@@ -1,0 +1,72 @@
+# Production overrides — use: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+# Requires .env.production — see: npm run secrets:generate -- --write && npm run deploy:preflight
+
+services:
+  db:
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-schoolpilot_app}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD required in .env.production}
+      POSTGRES_DB: ${POSTGRES_DB:-schooldb}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-schoolpilot_app} -d ${POSTGRES_DB:-schooldb}"]
+    # Do not expose Postgres publicly in production
+    ports: !reset []
+
+  backend:
+    env_file:
+      - .env.production
+    environment:
+      NODE_ENV: production
+      TRUST_PROXY: "true"
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL required}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET required — run npm run secrets:generate}
+      REFRESH_SECRET: ${REFRESH_SECRET:?REFRESH_SECRET required}
+      RUN_SEED: ${RUN_SEED:-false}
+    volumes: !reset []
+    ports:
+      - "4000:4000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:4000/api/health/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  frontend:
+    profiles: !reset []
+    restart: unless-stopped
+    env_file:
+      - .env.production
+    ports:
+      - "3000:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    profiles: !reset []
+    volumes:
+      - redis-data:/data
+  # Set REDIS_URL=redis://redis:6379 in .env.production when using this profile
+
+  backup:
+    image: node:20-alpine
+    restart: unless-stopped
+    working_dir: /app
+    env_file:
+      - .env.production
+    volumes:
+      - ./:/app
+      - ./backups:/app/backups
+    environment:
+      BACKUP_VIA_DOCKER: "true"
+      BACKUP_RETAIN_DAYS: ${BACKUP_RETAIN_DAYS:-30}
+    entrypoint: ["/bin/sh", "-c", "while true; do node scripts/schedule-backup.js && sleep 86400; done"]
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  redis-data:

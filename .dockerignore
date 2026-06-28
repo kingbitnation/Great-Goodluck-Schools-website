@@ -5,3 +5,7 @@ dist
 coverage
 .env
 *.log
+src/frontend/.next
+src/frontend/node_modules
+backups
+.gitignore

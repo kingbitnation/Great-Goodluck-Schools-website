@@ -1,12 +1,13 @@
 # Dependencies
 node_modules/
-package-lock.json
 yarn.lock
 
 # Environment variables
 .env
 .env.local
 .env.*.local
+.env.production
+.env.production.local
 
 # Build outputs
 .next/
@@ -48,6 +49,8 @@ tmp/
 *.db
 *.sqlite
 db-data/
+backups/*
+!backups/.gitkeep
 
-# Docker
-docker-entrypoint.sh
+# Local uploads (use Cloudinary in production)
+uploads/

@@ -6,18 +6,30 @@ import { apiGet } from '../lib/api'
 import { navForRole, ROLE_LABELS } from '../lib/navigation'
 import type { AuthUser } from '../lib/useAuth'
 import Link from 'next/link'
+import SystemStatusPanel from '../components/admin/SystemStatusPanel'
 
 type Stats = Record<string, number>
 
 function DashboardPage({ user }: { user: AuthUser }) {
   const [stats, setStats] = useState<Stats | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [setupPending, setSetupPending] = useState(false)
 
   useEffect(() => {
     apiGet<Stats>('/api/dashboard/stats')
       .then(setStats)
       .catch((e) => setError(e.message))
   }, [])
+
+  useEffect(() => {
+    if (user.role !== 'SchoolAdmin' || !user.schoolId) return
+    apiGet<Array<{ id: string; setupCompleted: boolean }>>('/api/schools')
+      .then((schools) => {
+        const mine = schools.find((s) => s.id === user.schoolId) || schools[0]
+        setSetupPending(Boolean(mine && !mine.setupCompleted))
+      })
+      .catch(() => {})
+  }, [user.role, user.schoolId])
 
   const quickLinks = navForRole(user.role).filter((item) => item.href !== '/dashboard')
 
@@ -28,6 +40,37 @@ function DashboardPage({ user }: { user: AuthUser }) {
         <span className="font-medium text-gray-900">{ROLE_LABELS[user.role] || user.role}</span>
         {user.schoolName ? ` at ${user.schoolName}` : ''}.
       </p>
+      {user.role === 'SchoolAdmin' && setupPending && (
+        <section className="mb-8 rounded-lg border border-amber-300 bg-amber-50 p-6 shadow-sm">
+          <h2 className="text-sm font-semibold text-amber-900 mb-2">Complete your school setup</h2>
+          <p className="text-sm text-amber-800 mb-4">
+            Finish branding, subscription, and user onboarding to unlock the full platform for your school.
+          </p>
+          <Link
+            href="/admin/setup-wizard"
+            className="inline-block rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700"
+          >
+            Open setup wizard
+          </Link>
+        </section>
+      )}
+      {['SuperAdmin', 'SchoolAdmin'].includes(user.role) && (
+        <SystemStatusPanel />
+      )}
+      {user.role === 'SuperAdmin' && (
+        <section className="mb-8 rounded-lg border border-indigo-200 bg-indigo-50 p-6 shadow-sm">
+          <h2 className="text-sm font-semibold text-indigo-900 mb-2">Platform operator</h2>
+          <p className="text-sm text-indigo-800 mb-4">
+            View MRR, manage subscription plans, billing, feature flags, and system health.
+          </p>
+          <Link
+            href="/super-admin"
+            className="inline-block rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+          >
+            Open platform dashboard
+          </Link>
+        </section>
+      )}
       {['SuperAdmin', 'SchoolAdmin'].includes(user.role) && (
         <section className="mb-8 rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
           <h2 className="text-sm font-semibold text-gray-900 mb-4">Admin actions</h2>

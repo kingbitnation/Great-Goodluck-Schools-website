@@ -1,0 +1,79 @@
+name: Staging E2E
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  e2e-full:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: schooldb
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/schooldb
+      JWT_SECRET: staging_jwt_secret_min_32_characters_long
+      REFRESH_SECRET: staging_refresh_secret_min_32_chars_diff
+      NODE_ENV: test
+      TRUST_PROXY: "true"
+      APP_URL: http://localhost:3000
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:4000
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Install frontend dependencies
+        working-directory: src/frontend
+        run: npm ci
+
+      - name: Prisma setup
+        run: npx prisma generate && npx prisma db push && npm run prisma:seed
+
+      - name: Start backend
+        run: node src/backend/server.js &
+
+      - name: Wait for backend
+        run: node scripts/wait-for-backend.js
+
+      - name: Build and start frontend
+        working-directory: src/frontend
+        run: npm run build && npm start &
+
+      - name: Wait for frontend
+        run: |
+          for i in $(seq 1 60); do
+            curl -sf http://localhost:3000 > /dev/null && exit 0
+            sleep 2
+          done
+          echo "Frontend did not start in time"
+          exit 1
+
+      - name: Install Playwright
+        run: npx playwright install chromium --with-deps
+
+      - name: Run full E2E suite
+        run: npm run test:e2e:staging
+        env:
+          STAGING_API_URL: http://localhost:4000
+          STAGING_BASE_URL: http://localhost:3000

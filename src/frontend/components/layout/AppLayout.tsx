@@ -1,9 +1,11 @@
 import Link from 'next/link'
+import { ThemeToggle } from '../ThemeProvider'
 import { useRouter } from 'next/router'
 import type { ReactNode } from 'react'
 import { logout } from '../../lib/auth'
 import { navForRole, ROLE_LABELS } from '../../lib/navigation'
 import type { AuthUser } from '../../lib/useAuth'
+import { SkipLink } from '../ui'
 
 type AppLayoutProps = {
   user: AuthUser
@@ -26,23 +28,29 @@ export default function AppLayout({ user, title, children }: AppLayoutProps) {
   }
 
   return (
-    <div className="min-h-screen flex bg-gray-50">
-      <aside className="w-64 bg-white border-r border-gray-200 flex flex-col">
-        <div className="p-5 border-b border-gray-200">
-          <p className="text-xs font-semibold uppercase tracking-wide text-blue-600">School SMS</p>
-          <p className="mt-1 text-sm font-medium text-gray-900 truncate">
+    <div className="min-h-screen flex bg-school-bg font-sans text-school-text">
+      <SkipLink />
+      <aside
+        className="w-64 bg-school-surface border-r border-school-border flex flex-col shadow-sm"
+        aria-label="Portal navigation"
+      >
+        <div className="p-5 border-b border-school-border bg-gradient-to-br from-school-navy to-[#0d2854] text-white">
+          <p className="text-xs font-semibold uppercase tracking-wide text-amber-200">
+            {user.role === 'SuperAdmin' ? 'SchoolPilot' : (user.schoolName || 'SchoolPilot')}
+          </p>
+          <p className="mt-1 text-sm font-medium truncate">
             {user.firstName} {user.lastName}
           </p>
-          <p className="text-xs text-gray-500">{ROLE_LABELS[user.role] || user.role}</p>
+          <p className="text-xs text-blue-100">{ROLE_LABELS[user.role] || user.role}</p>
           {user.schoolName && (
-            <p className="mt-1 text-xs text-gray-400 truncate">{user.schoolName}</p>
+            <p className="mt-1 text-xs text-blue-200 truncate">{user.schoolName}</p>
           )}
         </div>
 
-        <nav className="flex-1 overflow-y-auto p-3 space-y-4">
+        <nav className="flex-1 overflow-y-auto p-3 space-y-4" aria-label="Main menu">
           {sections.map((section) => (
             <div key={section}>
-              <p className="px-3 mb-1 text-xs font-semibold uppercase text-gray-400">{section}</p>
+              <p className="px-3 mb-1 text-xs font-semibold uppercase text-school-muted">{section}</p>
               <ul className="space-y-0.5">
                 {items
                   .filter((item) => (item.section || 'Main') === section)
@@ -52,10 +60,11 @@ export default function AppLayout({ user, title, children }: AppLayoutProps) {
                       <li key={item.href}>
                         <Link
                           href={item.href}
-                          className={`block rounded-md px-3 py-2 text-sm transition-colors ${
+                          aria-current={active ? 'page' : undefined}
+                          className={`block rounded-xl px-3 py-2 text-sm transition-colors ${
                             active
-                              ? 'bg-blue-50 text-blue-700 font-medium'
-                              : 'text-gray-700 hover:bg-gray-100'
+                              ? 'bg-school-gold/15 text-amber-800 dark:text-amber-300 font-medium'
+                              : 'text-school-text hover:bg-school-muted/10'
                           }`}
                         >
                           {item.label}
@@ -68,21 +77,24 @@ export default function AppLayout({ user, title, children }: AppLayoutProps) {
           ))}
         </nav>
 
-        <div className="p-3 border-t border-gray-200">
+        <div className="p-3 border-t border-school-border space-y-2">
+          <ThemeToggle className="w-full" />
           <button
+            type="button"
             onClick={handleLogout}
-            className="w-full rounded-md px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 text-left"
+            className="w-full rounded-xl px-3 py-2 text-sm text-school-text hover:bg-school-muted/10 text-left"
+            aria-label="Sign out of your account"
           >
             Sign out
           </button>
         </div>
       </aside>
 
-      <main className="flex-1 overflow-auto">
-        <header className="bg-white border-b border-gray-200 px-8 py-5">
-          <h1 className="text-xl font-semibold text-gray-900">{title}</h1>
+      <main id="main-content" className="flex-1 overflow-auto" tabIndex={-1}>
+        <header className="bg-school-surface border-b border-school-border px-6 py-5 shadow-sm sm:px-8">
+          <h1 className="font-display text-xl font-semibold text-school-text">{title}</h1>
         </header>
-        <div className="p-8">{children}</div>
+        <div className="p-6 sm:p-8">{children}</div>
       </main>
     </div>
   )

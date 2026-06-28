@@ -10,6 +10,8 @@ export type AuthUser = {
   role: string
   schoolId?: string | null
   schoolName?: string | null
+  emailVerified?: boolean
+  twoFactorEnabled?: boolean
 }
 
 type UseAuthOptions = {

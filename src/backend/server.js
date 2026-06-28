@@ -1,16 +1,71 @@
+const path = require('path')
 const express = require('express')
 const cors = require('cors')
+const helmet = require('helmet')
 const jwt = require('jsonwebtoken')
-const bcrypt = require('bcrypt')
-const crypto = require('crypto')
 require('dotenv').config()
 
-const prisma = require('./prismaClient')
-const { registerResourceRoutes } = require('./routes/resourceRoutes')
+const { installProductionSafeConsole } = require('./lib/safeLogger')
+installProductionSafeConsole()
 
+const { assertProductionSecrets } = require('./lib/securityConfig')
+if (process.env.NODE_ENV === 'production') {
+  assertProductionSecrets()
+}
+
+const prisma = require('./prismaClient')
+const { registerAuthRoutes } = require('./routes/authRoutes')
+const { registerResourceRoutes } = require('./routes/resourceRoutes')
+const { registerCompatRoutes } = require('./routes/compatRoutes')
+const { registerCbtRoutes } = require('./routes/cbtRoutes')
+const { registerAnalyticsRoutes } = require('./routes/analyticsRoutes')
+const { registerFinanceRoutes } = require('./routes/financeRoutes')
+const { registerEmailRoutes } = require('./routes/emailRoutes')
+const { enqueueEmail, processEmailQueue, queueFeeReminders } = require('./lib/emailQueue')
+const { processSmsQueue } = require('./lib/smsQueue')
+const { dispatchNotification } = require('./lib/notificationDispatcher')
+const { buildHealthReport } = require('./lib/monitoring')
+const { createRateLimiter, authRateLimiter, auditLogger } = require('./middleware/security')
+const { createTenantGuard } = require('./middleware/tenantGuard')
+const { registerSaasRoutes } = require('./routes/saasRoutes')
+const { registerLmsRoutes } = require('./routes/lmsRoutes')
+const { registerLiveClassRoutes } = require('./routes/liveClassRoutes')
+const { registerResultsRoutes } = require('./routes/resultsRoutes')
+const { registerAiRoutes } = require('./routes/aiRoutes')
+const { registerAdmissionRoutes } = require('./routes/admissionRoutes')
+const { registerHrRoutes } = require('./routes/hrRoutes')
+const { registerPayrollRoutes } = require('./routes/payrollRoutes')
+const { registerLibraryRoutes } = require('./routes/libraryRoutes')
+const { registerHostelRoutes } = require('./routes/hostelRoutes')
+const { registerTransportRoutes } = require('./routes/transportRoutes')
+const { registerBiometricRoutes } = require('./routes/biometricRoutes')
+const { registerCertificateRoutes } = require('./routes/certificateRoutes')
+const { registerIdCardRoutes } = require('./routes/idCardRoutes')
+const { registerAlumniRoutes } = require('./routes/alumniRoutes')
+const { registerMarketplaceRoutes } = require('./routes/marketplaceRoutes')
+const { registerPublicRoutes } = require('./routes/publicRoutes')
+const { registerPublicAdminRoutes } = require('./routes/publicAdminRoutes')
+const { registerNotificationRoutes } = require('./routes/notificationRoutes')
+const { registerSystemRoutes } = require('./routes/systemRoutes')
+const { registerPlatformRoutes } = require('./routes/platformRoutes')
+const { registerBillingRoutes } = require('./routes/billingRoutes')
+const { createModuleFeatureGuard } = require('./middleware/moduleFeatureGuard')
+const { csrfProtection, registerCsrfRoute } = require('./middleware/csrf')
+const { recordUsage } = require('./lib/platformHelpers')
 const app = express()
+if (process.env.TRUST_PROXY === 'true' || process.env.NODE_ENV === 'production') {
+  app.set('trust proxy', 1)
+}
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+  hsts: process.env.NODE_ENV === 'production'
+    ? { maxAge: 31536000, includeSubDomains: true, preload: true }
+    : false,
+}))
 app.use(cors({ origin: true, credentials: true }))
-app.use(express.json())
+app.use(express.json({ limit: '2mb' }))
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')))
+app.use(createRateLimiter())
 
 function parseCookies(req) {
   const header = req.headers.cookie
@@ -22,260 +77,162 @@ function parseCookies(req) {
   }, {})
 }
 
-const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret_change_me'
-const REFRESH_SECRET = process.env.REFRESH_SECRET || 'dev_refresh_change_me'
-const REFRESH_MAX_AGE = 7 * 24 * 60 * 60
-const isProduction = process.env.NODE_ENV === 'production'
+app.get('/api/health/live', (req, res) => {
+  res.json({ status: 'ok', backend: 'running' })
+})
 
-function setRefreshCookie(res, token) {
-  const secure = isProduction ? '; Secure' : ''
-  const sameSite = isProduction ? 'Strict' : 'Lax'
-  res.setHeader(
-    'Set-Cookie',
-    `refreshToken=${encodeURIComponent(token)}; HttpOnly; Path=/; Max-Age=${REFRESH_MAX_AGE}; SameSite=${sameSite}${secure}`
-  )
-}
-
-function clearRefreshCookie(res) {
-  const secure = isProduction ? '; Secure' : ''
-  res.setHeader(
-    'Set-Cookie',
-    `refreshToken=; HttpOnly; Path=/; Max-Age=0; SameSite=Strict${secure}`
-  )
-}
-
-function userPayload(user) {
-  return {
-    id: user.id,
-    email: user.email,
-    firstName: user.firstName,
-    lastName: user.lastName,
-    role: user.role.name,
-    schoolId: user.schoolId || null,
-    schoolName: user.school?.name || null,
-  }
-}
-
-async function persistRefreshToken(userId, refreshToken) {
-  const expiresAt = new Date(Date.now() + REFRESH_MAX_AGE * 1000)
-  await prisma.refreshToken.create({
-    data: { token: refreshToken, userId, expiresAt },
-  })
-}
-
-async function issueTokens(user, res) {
-  const role = user.role.name
-  const accessToken = jwt.sign(
-    { userId: user.id, role, schoolId: user.schoolId || null },
-    JWT_SECRET,
-    { expiresIn: '15m' }
-  )
-  const refreshToken = jwt.sign(
-    { userId: user.id, jti: crypto.randomUUID() },
-    REFRESH_SECRET,
-    { expiresIn: '7d' }
-  )
-
-  await persistRefreshToken(user.id, refreshToken)
-  setRefreshCookie(res, refreshToken)
-  return accessToken
-}
-
-async function findUserByEmail(email) {
-  return prisma.user.findUnique({
-    where: { email },
-    include: { role: true, school: { select: { id: true, name: true } } },
-  })
-}
-
-async function findUserById(id) {
-  return prisma.user.findUnique({
-    where: { id },
-    include: { role: true, school: { select: { id: true, name: true } } },
-  })
-}
-
-async function rotateRefreshToken(oldToken, res) {
-  let payload
+app.get('/api/health/ready', async (req, res) => {
   try {
-    payload = jwt.verify(oldToken, REFRESH_SECRET)
+    const report = await buildHealthReport(prisma)
+    if (!report.db) return res.status(503).json({ ...report, status: 'not_ready' })
+    res.json({ ...report, status: 'ready' })
   } catch {
-    return null
+    res.status(503).json({ status: 'not_ready', backend: 'running', db: false })
   }
-
-  const stored = await prisma.refreshToken.findUnique({ where: { token: oldToken } })
-  if (!stored) return null
-
-  if (stored.revoked) {
-    await prisma.refreshToken.updateMany({
-      where: { userId: stored.userId },
-      data: { revoked: true },
-    })
-    return null
-  }
-
-  if (stored.expiresAt < new Date()) {
-    await prisma.refreshToken.update({
-      where: { id: stored.id },
-      data: { revoked: true },
-    })
-    return null
-  }
-
-  await prisma.refreshToken.update({
-    where: { id: stored.id },
-    data: { revoked: true },
-  })
-
-  const user = await findUserById(payload.userId)
-  if (!user || !user.isActive) return null
-  return issueTokens(user, res)
-}
+})
 
 app.get('/api/health', async (req, res) => {
   try {
-    await prisma.$queryRaw`SELECT 1`
-    res.json({ status: 'ok', backend: 'running', db: true })
+    const detailed = req.query.detailed === 'true'
+    const report = await buildHealthReport(prisma, { detailed })
+    if (!report.db) return res.status(503).json(report)
+    res.json(report)
   } catch {
     res.status(503).json({ status: 'degraded', backend: 'running', db: false })
   }
 })
 
-app.post('/api/auth/login', async (req, res) => {
-  const { email, password } = req.body
-  if (!email || !password) return res.status(400).json({ error: 'Missing credentials' })
-
-  try {
-    const user = await findUserByEmail(email)
-    if (!user || !user.isActive) return res.status(401).json({ error: 'Invalid credentials' })
-    const ok = await bcrypt.compare(password, user.password)
-    if (!ok) return res.status(401).json({ error: 'Invalid credentials' })
-
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { lastLogin: new Date() },
-    })
-
-    const accessToken = await issueTokens(user, res)
-    return res.json({ accessToken, user: userPayload(user) })
-  } catch (err) {
-    console.error(err)
-    return res.status(500).json({ error: 'Server error' })
-  }
+app.get('/api/docs/openapi.yaml', (_req, res) => {
+  res.type('text/yaml').sendFile(path.join(__dirname, '../../docs/openapi.yaml'))
 })
 
-app.post('/api/auth/refresh', async (req, res) => {
-  const cookies = parseCookies(req)
-  const token = cookies.refreshToken || req.body.refreshToken
-  if (!token) return res.status(401).json({ error: 'Missing refresh token' })
-
-  try {
-    const accessToken = await rotateRefreshToken(token, res)
-    if (!accessToken) return res.status(401).json({ error: 'Invalid refresh token' })
-    return res.json({ accessToken })
-  } catch (err) {
-    console.error(err)
-    return res.status(401).json({ error: 'Invalid refresh token' })
-  }
+const { requireRole, requirePermission } = registerAuthRoutes(app, {
+  prisma,
+  authRateLimiter,
+  enqueueEmail,
+  parseCookies,
 })
 
-app.post('/api/auth/logout', async (req, res) => {
-  const cookies = parseCookies(req)
-  const token = cookies.refreshToken || req.body.refreshToken
+registerCsrfRoute(app)
 
-  if (token) {
-    await prisma.refreshToken.updateMany({
-      where: { token },
-      data: { revoked: true },
-    })
-  }
+const moduleFeatureGuard = createModuleFeatureGuard(prisma)
 
-  clearRefreshCookie(res)
-  return res.json({ message: 'Logged out' })
-})
+const { requireActiveSchool, enforceStudentLimit } = createTenantGuard(prisma)
 
-app.get('/api/auth/me', async (req, res) => {
+function attachUserIfPresent(req, res, next) {
   const auth = req.headers.authorization
-  if (!auth) return res.status(401).json({ error: 'Missing Authorization header' })
-  const parts = auth.split(' ')
-  if (parts.length !== 2) return res.status(401).json({ error: 'Malformed Authorization header' })
-  const token = parts[1]
-
-  try {
-    const payload = jwt.verify(token, JWT_SECRET)
-    const user = await findUserById(payload.userId)
-    if (!user) return res.status(404).json({ error: 'User not found' })
-    return res.json({ user: userPayload(user) })
-  } catch {
-    return res.status(401).json({ error: 'Invalid token' })
-  }
-})
-
-function requireRole(...roles) {
-  return (req, res, next) => {
-    const auth = req.headers.authorization
-    if (!auth) return res.status(401).json({ error: 'Missing Authorization header' })
+  if (auth) {
     const parts = auth.split(' ')
-    if (parts.length !== 2) return res.status(401).json({ error: 'Malformed Authorization header' })
-    const token = parts[1]
-    try {
-      const payload = jwt.verify(token, JWT_SECRET)
-      const allowed = payload.role === 'SuperAdmin' || roles.includes(payload.role)
-      if (!allowed) {
-        return res.status(403).json({ error: 'Forbidden' })
+    if (parts.length === 2) {
+      try {
+        req.user = jwt.verify(parts[1], JWT_SECRET)
+      } catch {
+        // ignore invalid token for optional attach
       }
-      req.user = payload
-      next()
-    } catch {
-      return res.status(401).json({ error: 'Invalid token' })
     }
   }
+  next()
 }
 
-app.post('/api/auth/register', async (req, res) => {
-  const { email, password, firstName, lastName, roleName, schoolId } = req.body
+app.use(attachUserIfPresent)
+app.use(csrfProtection)
+app.use(auditLogger(prisma))
 
-  if (!email || !password || !firstName || !lastName || !roleName) {
-    return res.status(400).json({ error: 'Missing required fields' })
+app.use((req, res, next) => {
+  if (req.user?.schoolId && req.path.startsWith('/api/')) {
+    recordUsage(prisma, req.user.schoolId, { apiRequests: 1 }).catch(() => {})
   }
-
-  try {
-    const existingUser = await prisma.user.findUnique({ where: { email } })
-    if (existingUser) {
-      return res.status(400).json({ error: 'Email already registered' })
-    }
-
-    const role = await prisma.role.findUnique({ where: { name: roleName } })
-    if (!role) {
-      return res.status(400).json({ error: 'Invalid role' })
-    }
-
-    const hashedPassword = await bcrypt.hash(password, 10)
-    const user = await prisma.user.create({
-      data: {
-        email,
-        password: hashedPassword,
-        firstName,
-        lastName,
-        roleId: role.id,
-        schoolId: schoolId || null,
-        isActive: true,
-      },
-    })
-
-    return res.status(201).json({
-      id: user.id,
-      email: user.email,
-      role: role.name,
-      schoolId: user.schoolId,
-    })
-  } catch (err) {
-    console.error(err)
-    return res.status(500).json({ error: 'Server error' })
-  }
+  next()
 })
 
-registerResourceRoutes(app, { prisma, requireRole })
+app.use(moduleFeatureGuard)
+
+app.use((req, res, next) => {
+  const openPaths = ['/api/health', '/api/auth/', '/api/public/', '/api/webhooks/', '/api/docs/']
+  if (!req.path.startsWith('/api/')) return next()
+  if (openPaths.some((p) => req.path.startsWith(p))) return next()
+  if (!req.user || req.user.role === 'SuperAdmin') return next()
+  return requireActiveSchool(req, res, next)
+})
+
+registerBillingRoutes(app, { prisma, requireRole, enqueueEmail, dispatchNotification })
+registerSaasRoutes(app, { prisma, requireRole, enqueueEmail })
+registerCertificateRoutes(app, { prisma, requireRole })
+registerIdCardRoutes(app, { prisma, requireRole })
+registerLmsRoutes(app, { prisma, requireRole })
+registerLiveClassRoutes(app, { prisma, requireRole })
+registerResultsRoutes(app, { prisma, requireRole })
+registerAiRoutes(app, { prisma, requireRole })
+registerAdmissionRoutes(app, { prisma, requireRole, enqueueEmail })
+registerHrRoutes(app, { prisma, requireRole, enqueueEmail })
+registerPayrollRoutes(app, { prisma, requireRole, enqueueEmail })
+registerLibraryRoutes(app, { prisma, requireRole, enqueueEmail })
+registerHostelRoutes(app, { prisma, requireRole })
+registerTransportRoutes(app, { prisma, requireRole })
+registerBiometricRoutes(app, { prisma, requireRole })
+registerAlumniRoutes(app, { prisma, requireRole })
+registerMarketplaceRoutes(app, { prisma, requireRole })
+registerPublicRoutes(app, { prisma })
+registerPublicAdminRoutes(app, { prisma, requireRole })
+registerNotificationRoutes(app, { prisma, requireRole, requirePermission })
+registerSystemRoutes(app, { prisma, requireRole })
+registerPlatformRoutes(app, { prisma, requireRole })
+registerCompatRoutes(app, { prisma, requireRole })
+registerResourceRoutes(app, { prisma, requireRole, requirePermission, enqueueEmail, enforceStudentLimit })
+registerFinanceRoutes(app, { prisma, requireRole, requirePermission, enqueueEmail })
+registerCbtRoutes(app, { prisma, requireRole })
+registerAnalyticsRoutes(app, { prisma, requireRole })
+registerEmailRoutes(app, { prisma, requireRole, requirePermission })
+
+setInterval(() => {
+  processEmailQueue().catch((err) => console.error('Email queue error:', err))
+}, 30000)
+
+setInterval(() => {
+  processSmsQueue().catch((err) => console.error('SMS queue error:', err))
+}, 30000)
+
+// Daily fee reminder sweep at server start + every 24h
+async function runFeeReminderSweep() {
+  try {
+    const schools = await prisma.school.findMany({ where: { status: 'active' }, select: { id: true } })
+    for (const school of schools) {
+      await queueFeeReminders(prisma, school.id)
+    }
+  } catch (err) {
+    console.error('Fee reminder sweep error:', err)
+  }
+}
+runFeeReminderSweep()
+setInterval(runFeeReminderSweep, 24 * 60 * 60 * 1000)
+
+const { startSubscriptionJobs } = require('./lib/subscriptionJobs')
+startSubscriptionJobs(prisma, { dispatchNotification })
+
+app.post('/api/public/contact', async (req, res) => {
+  const { name, email, message } = req.body
+  if (!name || !email || !message) return res.status(400).json({ error: 'All fields required' })
+  try {
+    const admin = await prisma.user.findFirst({ where: { role: { name: 'SuperAdmin' } } })
+    if (admin) {
+      await dispatchNotification(prisma, {
+        userId: admin.id,
+        type: 'contact',
+        title: `Contact from ${name}`,
+        body: `${email}: ${message}`,
+        payload: { name, email, message },
+        email: admin.email,
+        emailTemplate: 'contact_form',
+        emailPayload: { name, email, message },
+        channels: ['in_app', 'email'],
+      })
+    }
+    res.json({ message: 'Message received' })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: 'Server error' })
+  }
+})
 
 const port = process.env.PORT || 4000
 app.listen(port, () => {

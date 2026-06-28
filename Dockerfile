@@ -1,26 +1,28 @@
-FROM node:24
+FROM node:20-bookworm-slim
 
-# Create app directory
 WORKDIR /usr/src/app
 
-# Copy package files
+RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
+
 COPY package.json package-lock.json* ./
+RUN npm set progress=false && npm ci --no-audit --no-fund
 
-# Install dependencies (allow legacy peer deps for complex trees)
-RUN npm set progress=false && npm install --legacy-peer-deps --no-audit --no-fund
+COPY prisma ./prisma
+RUN npx prisma generate
 
-# Copy source
-COPY . .
+COPY src/backend ./src/backend
+COPY docs/openapi.yaml ./docs/openapi.yaml
+COPY scripts ./scripts
 
-# Generate Prisma client if schema exists
-RUN npx prisma generate || true
+RUN sed -i 's/\r$//' scripts/docker-entrypoint.sh scripts/wait-for-db.js scripts/seed-if-empty.js \
+  && chmod +x scripts/docker-entrypoint.sh
 
-# Expose port
+ENV NODE_ENV=production
 EXPOSE 4000
 
-COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
+  CMD node -e "require('http').get('http://127.0.0.1:4000/api/health/live',(r)=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"
 
-# Default command
-ENTRYPOINT ["docker-entrypoint.sh"]
+ENTRYPOINT ["scripts/docker-entrypoint.sh"]
 CMD ["node", "src/backend/server.js"]

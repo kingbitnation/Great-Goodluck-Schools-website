@@ -1,0 +1,319 @@
+openapi: 3.0.3
+info:
+  title: SchoolPilot API
+  description: |
+    Multi-tenant school management SaaS API.
+    Authenticated routes require `Authorization: Bearer <accessToken>`.
+    OpenAPI spec also served at `GET /api/docs/openapi.yaml`.
+  version: 1.0.0
+  contact:
+    name: Great Goodluck Schools
+servers:
+  - url: http://localhost:4000
+    description: Local development
+  - url: https://api.yourschoolpilot.com
+    description: Production
+
+tags:
+  - name: Health
+  - name: Auth
+  - name: Public
+  - name: Platform
+  - name: SaaS
+  - name: Schools
+  - name: Support
+
+paths:
+  /api/health/live:
+    get:
+      tags: [Health]
+      summary: Liveness probe
+      responses:
+        '200':
+          description: Backend process running
+
+  /api/health/ready:
+    get:
+      tags: [Health]
+      summary: Readiness probe (includes DB)
+      responses:
+        '200':
+          description: Ready
+        '503':
+          description: Not ready
+
+  /api/auth/login:
+    post:
+      tags: [Auth]
+      summary: Login with email and password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string, format: password }
+      responses:
+        '200':
+          description: Returns accessToken and user
+        '401':
+          description: Invalid credentials
+
+  /api/auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Refresh access token (cookie or body)
+      responses:
+        '200':
+          description: New accessToken
+        '401':
+          description: Invalid refresh token
+
+  /api/auth/csrf:
+    get:
+      tags: [Auth]
+      summary: Issue CSRF token (cookie-based clients)
+      responses:
+        '200':
+          description: csrfToken in JSON and cookie
+
+  /api/public/home:
+    get:
+      tags: [Public]
+      summary: Public website home data
+      parameters:
+        - name: schoolId
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: CMS content for landing page
+
+  /api/public/schools/register:
+    post:
+      tags: [Public]
+      summary: Register a new school (SaaS signup)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [schoolName, adminFirstName, adminLastName, adminEmail, password]
+              properties:
+                schoolName: { type: string }
+                adminEmail: { type: string }
+                password: { type: string, minLength: 8 }
+                proposedPlanSlug: { type: string }
+                referralCode: { type: string }
+      responses:
+        '201':
+          description: Registration pending approval
+
+  /api/platform/metrics:
+    get:
+      tags: [Platform]
+      summary: Super Admin business dashboard KPIs
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Schools, revenue, usage metrics
+        '403':
+          description: SuperAdmin only
+
+  /api/platform/plans:
+    get:
+      tags: [Platform]
+      summary: List subscription plans (Super Admin)
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Plan list with limits
+    post:
+      tags: [Platform]
+      summary: Create subscription plan
+      security: [{ bearerAuth: [] }]
+      responses:
+        '201':
+          description: Created
+
+  /api/platform/feature-flags:
+    get:
+      tags: [Platform]
+      summary: List feature flags
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Feature flag list
+
+  /api/platform/billing:
+    get:
+      tags: [Platform]
+      summary: Billing overview
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Renewals, failed payments, coupons
+
+  /api/platform/announcements:
+    post:
+      tags: [Platform]
+      summary: Create platform announcement
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title, body]
+              properties:
+                title: { type: string }
+                body: { type: string }
+                broadcast: { type: boolean }
+                targetRoles:
+                  type: array
+                  items: { type: string }
+      responses:
+        '201':
+          description: Created
+
+  /api/schools/{id}/subscription/checkout:
+    post:
+      tags: [SaaS]
+      summary: Start Paystack subscription checkout
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [planSlug]
+              properties:
+                planSlug: { type: string }
+                billingInterval: { type: string, enum: [monthly, quarterly, yearly] }
+                couponCode: { type: string }
+      responses:
+        '200':
+          description: checkoutUrl and reference
+
+  /api/schools/{id}/subscription/cancel:
+    post:
+      tags: [SaaS]
+      summary: Cancel school subscription
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Cancelled
+
+  /api/subscription/verify:
+    post:
+      tags: [SaaS]
+      summary: Verify Paystack payment after checkout
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reference]
+              properties:
+                reference: { type: string }
+      responses:
+        '200':
+          description: Subscription activated
+
+  /api/webhooks/paystack:
+    post:
+      tags: [SaaS]
+      summary: Paystack webhook (charge.success)
+      responses:
+        '200':
+          description: Received
+
+  /api/schools/{id}/domains:
+    get:
+      tags: [Schools]
+      summary: List custom domain verification records
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Domain records
+    post:
+      tags: [Schools]
+      summary: Start DNS domain verification
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [domain]
+              properties:
+                domain: { type: string }
+      responses:
+        '201':
+          description: DNS TXT instructions
+
+  /api/support/tickets:
+    get:
+      tags: [Support]
+      summary: List support tickets
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Ticket list
+    post:
+      tags: [Support]
+      summary: Open support ticket
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [subject, body]
+              properties:
+                subject: { type: string }
+                body: { type: string }
+                category: { type: string }
+      responses:
+        '201':
+          description: Created
+
+  /api/system/status:
+    get:
+      tags: [Platform]
+      summary: Integration readiness (SMTP, AI, payments)
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Integration status list
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
