@@ -1,4 +1,4 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000'
+import { apiBaseUrl } from './apiBase'
 
 export function saveToken(token: string) {
   if (typeof window !== 'undefined') {
@@ -23,7 +23,7 @@ let refreshPromise: Promise<string | null> | null = null
 
 async function tryRefresh(): Promise<string | null> {
   if (!refreshPromise) {
-    refreshPromise = fetch(`${API_BASE}/api/auth/refresh`, {
+    refreshPromise = fetch(`${apiBaseUrl()}/api/auth/refresh`, {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
@@ -48,8 +48,9 @@ export async function fetchWithAuth(path: string, options: RequestInit = {}) {
   let token = getToken()
   const headers = new Headers(options.headers || {})
   if (token) headers.set('Authorization', `Bearer ${token}`)
+  const base = apiBaseUrl()
 
-  let res = await fetch(`${API_BASE}${path}`, {
+  let res = await fetch(`${base}${path}`, {
     ...options,
     headers,
     credentials: 'include',
@@ -59,7 +60,7 @@ export async function fetchWithAuth(path: string, options: RequestInit = {}) {
     token = await tryRefresh()
     if (token) {
       headers.set('Authorization', `Bearer ${token}`)
-      res = await fetch(`${API_BASE}${path}`, {
+      res = await fetch(`${base}${path}`, {
         ...options,
         headers,
         credentials: 'include',
@@ -72,7 +73,7 @@ export async function fetchWithAuth(path: string, options: RequestInit = {}) {
 
 export async function logout() {
   try {
-    await fetch(`${API_BASE}/api/auth/logout`, {
+    await fetch(`${apiBaseUrl()}/api/auth/logout`, {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },

@@ -64,7 +64,8 @@ export const NAV_ITEMS: NavItem[] = [
   { href: '/admin/analytics/principal', label: 'Principal Dashboard', roles: ['SuperAdmin', 'SchoolAdmin'], section: 'Reports' },
   { href: '/admin/analytics/proprietor', label: 'Proprietor Dashboard', roles: ['SuperAdmin', 'SchoolAdmin'], section: 'Reports' },
   { href: '/admin/audit-logs', label: 'Audit logs', roles: ['SuperAdmin', 'SchoolAdmin'], section: 'Reports' },
-  { href: '/admin/email-settings', label: 'Email system', roles: ['SuperAdmin', 'SchoolAdmin'], section: 'School' },
+  { href: '/admin/usage', label: 'Usage & AI credits', roles: ['SchoolAdmin'], section: 'School' },
+  { href: '/admin/email-settings', label: 'Email system', roles: ['SchoolAdmin'], section: 'School' },
   { href: '/admin/notification-settings', label: 'SMS & push', roles: ['SuperAdmin', 'SchoolAdmin'], section: 'School' },
   { href: '/settings/security', label: 'Security', roles: ['SuperAdmin', 'SchoolAdmin', 'Teacher', 'Student', 'Parent', 'Accountant', 'Librarian', 'HostelManager', 'TransportManager', 'BiometricManager', 'HRManager', 'Alumni'], section: 'Account' },
   { href: '/settings/notifications', label: 'Notifications', roles: ['SuperAdmin', 'SchoolAdmin', 'Teacher', 'Student', 'Parent', 'Accountant', 'Alumni'], section: 'Account' },
@@ -136,13 +137,16 @@ export const NAV_ITEMS: NavItem[] = [
 ]
 
 export function navForRole(role: string): NavItem[] {
-  return NAV_ITEMS.filter(
-    (item) => item.roles.includes(role) || role === 'SuperAdmin'
-  )
+  const items = NAV_ITEMS.filter((item) => item.roles.includes(role))
+  if (role === 'SuperAdmin') {
+    const allowed = new Set(['Main', 'Super Admin', 'Account'])
+    return items.filter((item) => allowed.has(item.section || 'Main'))
+  }
+  return items
 }
 
 export const ROLE_HOME: Record<string, string> = {
-  SuperAdmin: '/dashboard',
+  SuperAdmin: '/super-admin',
   SchoolAdmin: '/dashboard',
   Teacher: '/teacher',
   Student: '/student',

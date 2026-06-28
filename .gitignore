@@ -42,6 +42,9 @@ yarn-error.log*
 .cache/
 temp/
 tmp/
+test-results/
+reports/
+*.tsbuildinfo
 *.pid
 *.seed
 

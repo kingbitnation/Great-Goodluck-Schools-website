@@ -39,6 +39,17 @@ const nextConfig = {
       },
     ]
   },
+  async rewrites() {
+    const backend =
+      process.env.API_INTERNAL_URL ||
+      process.env.BACKEND_URL ||
+      'http://localhost:4000'
+    const base = backend.replace(/\/$/, '')
+    return [
+      { source: '/api/:path*', destination: `${base}/api/:path*` },
+      { source: '/uploads/:path*', destination: `${base}/uploads/:path*` },
+    ]
+  },
 }
 
 module.exports = nextConfig

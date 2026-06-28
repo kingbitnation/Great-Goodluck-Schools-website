@@ -33,6 +33,7 @@
     "restore:db": "node scripts/restore-db.js",
     "platform:reset": "node scripts/reset-platform-data.js",
     "secrets:generate": "node scripts/generate-production-secrets.js",
+    "vapid:generate": "node scripts/generate-vapid-keys.js",
     "deploy:preflight": "node scripts/production-preflight.js",
     "deploy:prod": "docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.local.yml --env-file .env.production up -d --build",
     "health:monitor": "node scripts/health-monitor.js",

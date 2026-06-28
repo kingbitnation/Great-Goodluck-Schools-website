@@ -7,8 +7,9 @@ import { SchoolLogo } from '../components/public/Brand'
 import PricingCards, { BillingIntervalToggle, type Plan } from '../components/billing/PricingCards'
 import type { BillingInterval } from '../lib/design-tokens'
 import { saveToken } from '../lib/auth'
-
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000'
+import { apiBaseUrl, parseJsonResponse } from '../lib/apiBase'
+import { passwordMeetsRules, passwordsMatch } from '../lib/passwordRules'
+import PasswordRulesList from '../components/ui/PasswordRulesList'
 
 type Step = 'plan' | 'payment' | 'documents' | 'details'
 
@@ -86,6 +87,7 @@ export default function RegisterSchool() {
     adminLastName: '',
     adminEmail: '',
     adminPhone: '',
+    address: '',
     city: '',
     country: 'Nigeria',
     proposedPlanSlug: '',
@@ -94,12 +96,18 @@ export default function RegisterSchool() {
     confirm: '',
     paymentReference: '',
   })
+  const [phoneCode, setPhoneCode] = useState('')
+  const [phoneVerificationToken, setPhoneVerificationToken] = useState('')
+  const [phoneVerified, setPhoneVerified] = useState(false)
+  const [phoneDevHint, setPhoneDevHint] = useState('')
+  const [sendingCode, setSendingCode] = useState(false)
+  const [verifyingCode, setVerifyingCode] = useState(false)
   const [documents, setDocuments] = useState<UploadedDoc[]>([])
   const [paymentReceipt, setPaymentReceipt] = useState<{ url: string; fileName: string } | null>(null)
   const [pendingDocType, setPendingDocType] = useState(DOC_TYPES[0].type)
 
   useEffect(() => {
-    fetch(`${API_BASE}/api/subscription-plans`)
+    fetch(`${apiBaseUrl()}/api/subscription-plans`)
       .then((r) => r.json())
       .then((data: Plan[]) => {
         setPlans(data)
@@ -117,7 +125,7 @@ export default function RegisterSchool() {
     setError('')
     try {
       const res = await fetch(
-        `${API_BASE}/api/public/schools/register/quote?planSlug=${encodeURIComponent(planSlug)}&interval=${billingInterval}`
+        `${apiBaseUrl()}/api/public/schools/register/quote?planSlug=${encodeURIComponent(planSlug)}&interval=${billingInterval}`
       )
       const body = await res.json()
       if (!res.ok) throw new Error(body.error || 'Could not load payment details')
@@ -186,14 +194,62 @@ export default function RegisterSchool() {
 
   async function uploadRegistrationFile(file: File, documentType: string) {
     const fileBase64 = await fileToBase64(file)
-    const res = await fetch(`${API_BASE}/api/public/schools/register/upload`, {
+    const res = await fetch(`${apiBaseUrl()}/api/public/schools/register/upload`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ fileBase64, documentType, originalName: file.name }),
     })
-    const body = await res.json()
+    const body = await parseJsonResponse<{ error?: string; url?: string }>(res)
     if (!res.ok) throw new Error(body.error || 'Upload failed')
-    return { url: body.url as string, fileName: file.name }
+    if (!body.url) throw new Error('Upload failed — no file URL returned')
+    return { url: body.url, fileName: file.name }
+  }
+
+  async function sendPhoneCode() {
+    if (!form.adminPhone.trim()) {
+      setError('Enter your phone number first')
+      return
+    }
+    setSendingCode(true)
+    setError('')
+    setPhoneDevHint('')
+    setPhoneVerified(false)
+    setPhoneVerificationToken('')
+    try {
+      const res = await fetch(`${apiBaseUrl()}/api/public/schools/register/phone/send`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: form.adminPhone }),
+      })
+      const body = await parseJsonResponse<{ error?: string; message?: string; devCode?: string }>(res)
+      if (!res.ok) throw new Error(body.error || 'Could not send code')
+      setPhoneDevHint(body.devCode ? `Dev code: ${body.devCode}` : (body.message || 'Code sent'))
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Could not send code')
+    } finally {
+      setSendingCode(false)
+    }
+  }
+
+  async function verifyPhoneCode() {
+    setVerifyingCode(true)
+    setError('')
+    try {
+      const res = await fetch(`${apiBaseUrl()}/api/public/schools/register/phone/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: form.adminPhone, code: phoneCode }),
+      })
+      const body = await parseJsonResponse<{ error?: string; phoneVerificationToken?: string }>(res)
+      if (!res.ok) throw new Error(body.error || 'Verification failed')
+      setPhoneVerificationToken(body.phoneVerificationToken || '')
+      setPhoneVerified(true)
+      setPhoneDevHint('Phone verified')
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Verification failed')
+    } finally {
+      setVerifyingCode(false)
+    }
   }
 
   async function handleUpload(file: File) {
@@ -241,8 +297,16 @@ export default function RegisterSchool() {
       setError('Passwords do not match')
       return
     }
-    if (form.password.length < 8) {
-      setError('Password must be at least 8 characters')
+    if (!passwordMeetsRules(form.password)) {
+      setError('Password does not meet all requirements')
+      return
+    }
+    if (!form.address.trim()) {
+      setError('School address is required')
+      return
+    }
+    if (!phoneVerified || !phoneVerificationToken) {
+      setError('Verify your phone number before continuing')
       return
     }
     if (documents.length < 1) {
@@ -257,7 +321,7 @@ export default function RegisterSchool() {
     setSubmitting(true)
     setError('')
     try {
-      const regRes = await fetch(`${API_BASE}/api/public/schools/register`, {
+      const regRes = await fetch(`${apiBaseUrl()}/api/public/schools/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -266,8 +330,10 @@ export default function RegisterSchool() {
           adminLastName: form.adminLastName,
           adminEmail: form.adminEmail,
           adminPhone: form.adminPhone,
+          address: form.address.trim(),
           city: form.city,
           country: form.country,
+          phoneVerificationToken,
           proposedPlanSlug: form.proposedPlanSlug,
           billingInterval: interval,
           password: form.password,
@@ -284,16 +350,16 @@ export default function RegisterSchool() {
           })),
         }),
       })
-      const regBody = await regRes.json().catch(() => ({}))
+      const regBody = await parseJsonResponse<{ error?: string }>(regRes)
       if (!regRes.ok) throw new Error(regBody.error || 'Registration failed')
 
-      const loginRes = await fetch(`${API_BASE}/api/auth/login`, {
+      const loginRes = await fetch(`${apiBaseUrl()}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({ email: form.adminEmail, password: form.password }),
       })
-      const loginBody = await loginRes.json().catch(() => ({}))
+      const loginBody = await parseJsonResponse<{ error?: string; accessToken?: string }>(loginRes)
       if (!loginRes.ok || !loginBody.accessToken) {
         throw new Error('School created but sign-in failed. Try logging in with your email and password.')
       }
@@ -579,11 +645,12 @@ export default function RegisterSchool() {
                     className="w-full"
                     required
                   />
-                  <input
-                    placeholder="Phone"
-                    value={form.adminPhone}
-                    onChange={(e) => setForm({ ...form, adminPhone: e.target.value })}
-                    className="w-full"
+                  <textarea
+                    placeholder="School address *"
+                    value={form.address}
+                    onChange={(e) => setForm({ ...form, address: e.target.value })}
+                    className="w-full min-h-[80px]"
+                    required
                   />
                   <input
                     placeholder="City"
@@ -591,9 +658,40 @@ export default function RegisterSchool() {
                     onChange={(e) => setForm({ ...form, city: e.target.value })}
                     className="w-full"
                   />
+                  <div className="rounded-xl border border-school-border p-4 space-y-3">
+                    <p className="text-sm font-medium text-school-navy">Verify phone number *</p>
+                    <input
+                      placeholder="Phone (e.g. 08012345678) *"
+                      value={form.adminPhone}
+                      onChange={(e) => {
+                        setForm({ ...form, adminPhone: e.target.value })
+                        setPhoneVerified(false)
+                        setPhoneVerificationToken('')
+                      }}
+                      className="w-full"
+                      required
+                    />
+                    <div className="flex flex-wrap gap-2">
+                      <button type="button" onClick={sendPhoneCode} disabled={sendingCode} className="btn-navy text-sm py-2 px-4">
+                        {sendingCode ? 'Sending…' : 'Send code'}
+                      </button>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <input
+                        placeholder="6-digit code"
+                        value={phoneCode}
+                        onChange={(e) => setPhoneCode(e.target.value)}
+                        className="min-w-[140px] flex-1"
+                      />
+                      <button type="button" onClick={verifyPhoneCode} disabled={verifyingCode || !phoneCode} className="btn-royal text-sm py-2 px-4">
+                        {verifyingCode ? 'Checking…' : 'Verify'}
+                      </button>
+                    </div>
+                    {phoneDevHint && <p className={`text-xs ${phoneVerified ? 'text-school-green' : 'text-school-muted'}`}>{phoneDevHint}</p>}
+                  </div>
                   <input
                     type="password"
-                    placeholder="Password (min 8 characters) *"
+                    placeholder="Password *"
                     value={form.password}
                     onChange={(e) => setForm({ ...form, password: e.target.value })}
                     className="w-full"
@@ -607,7 +705,12 @@ export default function RegisterSchool() {
                     className="w-full"
                     required
                   />
-                  <button type="submit" disabled={submitting} className="btn-gold w-full">
+                  <PasswordRulesList password={form.password} confirm={form.confirm} />
+                  <button
+                    type="submit"
+                    disabled={submitting || !passwordMeetsRules(form.password) || !passwordsMatch(form.password, form.confirm) || !phoneVerified}
+                    className="btn-gold w-full disabled:opacity-50"
+                  >
                     {submitting ? 'Creating your school…' : 'Create school & continue to setup'}
                   </button>
                 </form>

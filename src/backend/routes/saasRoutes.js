@@ -21,6 +21,26 @@ const {
 
 const APP_URL = process.env.APP_URL || 'http://localhost:3000'
 
+const phoneVerifications = new Map()
+
+function normalizeNgPhone(phone) {
+  const digits = String(phone || '').replace(/\D/g, '')
+  if (!digits) return null
+  if (digits.startsWith('234') && digits.length >= 12) return `+${digits}`
+  if (digits.startsWith('0') && digits.length === 11) return `+234${digits.slice(1)}`
+  if (digits.length === 10) return `+234${digits}`
+  return null
+}
+
+function validateRegistrationPassword(password) {
+  if (!password || password.length < 8) return 'Password must be at least 8 characters'
+  if (!/[a-z]/.test(password)) return 'Password must include a lowercase letter'
+  if (!/[A-Z]/.test(password)) return 'Password must include an uppercase letter'
+  if (!/\d/.test(password)) return 'Password must include a number'
+  if (!/[^A-Za-z0-9]/.test(password)) return 'Password must include a special character'
+  return null
+}
+
 function generateRef(prefix) {
   return `${prefix}-${Date.now().toString(36).toUpperCase()}-${crypto.randomBytes(2).toString('hex').toUpperCase()}`
 }
@@ -67,6 +87,65 @@ function registerSaasRoutes(app, { prisma, requireRole, enqueueEmail }) {
     }
   })
 
+  app.post('/api/public/schools/register/phone/send', async (req, res) => {
+    try {
+      const phone = normalizeNgPhone(req.body.phone)
+      if (!phone) return res.status(400).json({ error: 'Enter a valid Nigerian phone number' })
+
+      const code = String(Math.floor(100000 + Math.random() * 900000))
+      const verificationToken = crypto.randomBytes(24).toString('hex')
+      phoneVerifications.set(phone, {
+        code,
+        verificationToken,
+        expiresAt: Date.now() + 10 * 60 * 1000,
+      })
+
+      let smsSent = false
+      try {
+        const { enqueueSms } = require('../lib/smsQueue')
+        await enqueueSms({
+          to: phone,
+          body: `Your SchoolPilot verification code is ${code}. Valid for 10 minutes.`,
+          template: 'general',
+          payload: { message: `Your SchoolPilot verification code is ${code}` },
+        })
+        smsSent = true
+      } catch (smsErr) {
+        console.warn('SMS send failed:', smsErr.message)
+      }
+
+      const payload = { message: smsSent ? 'Verification code sent' : 'SMS not configured — use the code shown below (dev only)' }
+      if (!smsSent || process.env.NODE_ENV !== 'production') {
+        payload.devCode = code
+      }
+      res.json(payload)
+    } catch (err) {
+      console.error(err)
+      res.status(500).json({ error: 'Could not send verification code' })
+    }
+  })
+
+  app.post('/api/public/schools/register/phone/verify', async (req, res) => {
+    try {
+      const phone = normalizeNgPhone(req.body.phone)
+      const { code } = req.body
+      if (!phone || !code) return res.status(400).json({ error: 'Phone and code required' })
+
+      const entry = phoneVerifications.get(phone)
+      if (!entry || entry.expiresAt < Date.now()) {
+        return res.status(400).json({ error: 'Code expired — request a new one' })
+      }
+      if (String(code).trim() !== entry.code) {
+        return res.status(400).json({ error: 'Incorrect verification code' })
+      }
+
+      res.json({ verified: true, phoneVerificationToken: entry.verificationToken })
+    } catch (err) {
+      console.error(err)
+      res.status(500).json({ error: 'Verification failed' })
+    }
+  })
+
   app.post('/api/public/schools/register/upload', async (req, res) => {
     const { fileBase64, documentType, originalName } = req.body
     if (!fileBase64) return res.status(400).json({ error: 'fileBase64 required' })
@@ -89,17 +168,28 @@ function registerSaasRoutes(app, { prisma, requireRole, enqueueEmail }) {
   app.post('/api/public/schools/register', async (req, res) => {
     const {
       schoolName, adminFirstName, adminLastName, adminEmail, adminPhone,
-      city, country, proposedPlanSlug, billingInterval = 'monthly',
+      address, city, country, proposedPlanSlug, billingInterval = 'monthly',
       password, referralCode, paymentReference, paymentAmount, paymentReceiptUrl,
-      verificationDocuments, registrationNumber,
+      verificationDocuments, registrationNumber, phoneVerificationToken,
     } = req.body
 
     if (!schoolName || !adminFirstName || !adminLastName || !adminEmail || !password) {
       return res.status(400).json({ error: 'Required fields missing' })
     }
-    if (password.length < 8) {
-      return res.status(400).json({ error: 'Password must be at least 8 characters' })
+    if (!address?.trim()) {
+      return res.status(400).json({ error: 'School address is required' })
     }
+    const phone = normalizeNgPhone(adminPhone)
+    if (!phone) return res.status(400).json({ error: 'Valid admin phone number is required' })
+    if (!phoneVerificationToken) {
+      return res.status(400).json({ error: 'Verify your phone number before registering' })
+    }
+    const phoneEntry = phoneVerifications.get(phone)
+    if (!phoneEntry || phoneEntry.verificationToken !== phoneVerificationToken || phoneEntry.expiresAt < Date.now()) {
+      return res.status(400).json({ error: 'Phone verification expired — verify again' })
+    }
+    const passwordError = validateRegistrationPassword(password)
+    if (passwordError) return res.status(400).json({ error: passwordError })
     if (!paymentReference?.trim()) {
       return res.status(400).json({ error: 'Bank transfer payment reference is required' })
     }
@@ -143,7 +233,7 @@ function registerSaasRoutes(app, { prisma, requireRole, enqueueEmail }) {
           adminFirstName,
           adminLastName,
           adminEmail,
-          adminPhone: adminPhone || null,
+          adminPhone: phone,
           city: city || null,
           country: country || 'Nigeria',
           proposedPlanSlug: planSlug,
@@ -164,10 +254,11 @@ function registerSaasRoutes(app, { prisma, requireRole, enqueueEmail }) {
       const school = await prisma.school.create({
         data: {
           name: schoolName,
+          address: String(address).trim(),
           city: city || null,
           country: country || 'Nigeria',
           contactEmail: adminEmail,
-          contactPhone: adminPhone || null,
+          contactPhone: phone,
           status: 'trial',
           primaryColor: '#2563eb',
           secondaryColor: '#0f172a',
@@ -243,6 +334,8 @@ function registerSaasRoutes(app, { prisma, requireRole, enqueueEmail }) {
           },
         })
       }
+
+      phoneVerifications.delete(phone)
 
       const superAdmins = await prisma.user.findMany({
         where: { role: { name: 'SuperAdmin' } },
@@ -413,6 +506,21 @@ function registerSaasRoutes(app, { prisma, requireRole, enqueueEmail }) {
     } catch (err) {
       console.error(err)
       res.status(500).json({ error: 'Server error' })
+    }
+  })
+
+  app.post('/api/schools/:id/reactivate', requireRole('SuperAdmin'), async (req, res) => {
+    try {
+      const { reactivateSchool } = require('../lib/subscriptionHelpers')
+      await reactivateSchool(prisma, req.params.id, { extendDays: 14, performedById: req.user.userId })
+      await prisma.school.update({
+        where: { id: req.params.id },
+        data: { status: 'active' },
+      })
+      res.json({ message: 'School unsuspended' })
+    } catch (err) {
+      console.error(err)
+      res.status(400).json({ error: err.message || 'Could not reactivate school' })
     }
   })
 

@@ -125,6 +125,16 @@ function SchoolsPage({ user }: { user: AuthUser }) {
     load()
   }
 
+  async function unsuspend(schoolId: string) {
+    setError(null)
+    try {
+      await apiPost(`/api/schools/${schoolId}/reactivate`, {})
+      load()
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Unsuspend failed')
+    }
+  }
+
   async function deleteSchool(schoolId: string, schoolName: string) {
     if (!confirm(`Permanently delete "${schoolName}" and all its data? This cannot be undone.`)) return
     setError(null)
@@ -334,6 +344,9 @@ function SchoolsPage({ user }: { user: AuthUser }) {
                       )}
                       {school.status === 'active' && (
                         <button type="button" onClick={() => suspend(school.id)} className="text-amber-600 hover:underline">Suspend</button>
+                      )}
+                      {school.status === 'suspended' && (
+                        <button type="button" onClick={() => unsuspend(school.id)} className="text-green-600 hover:underline">Unsuspend</button>
                       )}
                       <button type="button" onClick={() => deleteSchool(school.id, school.name)} className="text-red-600 hover:underline">Delete</button>
                     </div>

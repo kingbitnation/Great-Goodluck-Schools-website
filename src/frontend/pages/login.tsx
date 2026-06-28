@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { useState } from 'react'
 import { useRouter } from 'next/router'
+import { apiBaseUrl, parseJsonResponse } from '../lib/apiBase'
 import { saveToken } from '../lib/auth'
 import { ROLE_HOME } from '../lib/navigation'
 import { SchoolLogo } from '../components/public/Brand'
@@ -17,8 +18,6 @@ export default function Login() {
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
 
-  const base = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000'
-
   async function completeLogin(data: { accessToken: string; user: { role?: string } }) {
     saveToken(data.accessToken)
     const role = data.user?.role || 'SuperAdmin'
@@ -30,13 +29,20 @@ export default function Login() {
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch(`${base}/api/auth/login`, {
+      const res = await fetch(`${apiBaseUrl()}/api/auth/login`, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       })
-      const body = await res.json().catch(() => ({}))
+      const body = await parseJsonResponse<{
+        accessToken?: string
+        requires2FA?: boolean
+        tempToken?: string
+        user?: { role?: string }
+        error?: string
+        message?: string
+      }>(res)
       if (!res.ok) throw new Error(body?.error || body?.message || 'Login failed')
 
       if (body.requires2FA && body.tempToken) {
@@ -45,7 +51,7 @@ export default function Login() {
       }
 
       if (body?.accessToken) {
-        await completeLogin(body)
+        await completeLogin({ accessToken: body.accessToken, user: body.user || {} })
       } else {
         throw new Error('No token returned')
       }
@@ -62,16 +68,20 @@ export default function Login() {
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch(`${base}/api/auth/login/2fa`, {
+      const res = await fetch(`${apiBaseUrl()}/api/auth/login/2fa`, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tempToken, code: twoFactorCode }),
       })
-      const body = await res.json().catch(() => ({}))
+      const body = await parseJsonResponse<{
+        accessToken?: string
+        user?: { role?: string }
+        error?: string
+      }>(res)
       if (!res.ok) throw new Error(body?.error || 'Invalid code')
       if (body?.accessToken) {
-        await completeLogin(body)
+        await completeLogin({ accessToken: body.accessToken, user: body.user || {} })
       } else {
         throw new Error('No token returned')
       }

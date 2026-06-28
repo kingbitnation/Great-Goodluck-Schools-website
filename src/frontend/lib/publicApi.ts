@@ -1,4 +1,4 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000'
+import { apiBaseUrl } from './apiBase'
 
 export type PublicSchool = {
   id: string
@@ -85,7 +85,7 @@ export type HomeData = {
 }
 
 export async function fetchPublic<T>(path: string, schoolId?: string): Promise<T> {
-  const url = new URL(`${API_BASE}${path}`)
+  const url = new URL(`${apiBaseUrl()}${path}`, typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000')
   if (schoolId) url.searchParams.set('schoolId', schoolId)
   const res = await fetch(url.toString())
   if (!res.ok) throw new Error(`Public API error: ${path}`)

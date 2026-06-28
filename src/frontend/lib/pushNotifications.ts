@@ -1,6 +1,5 @@
 import { apiGet, apiPost, apiDelete } from './api'
-
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000'
+import { apiBaseUrl } from './apiBase'
 
 function urlBase64ToUint8Array(base64String: string) {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
@@ -84,5 +83,5 @@ export async function unsubscribeFromPush() {
 }
 
 export function getApiBaseForSw() {
-  return API_BASE
+  return apiBaseUrl() || process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000'
 }

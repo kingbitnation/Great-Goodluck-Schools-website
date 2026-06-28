@@ -34,11 +34,11 @@ function DashboardPage({ user }: { user: AuthUser }) {
   const quickLinks = navForRole(user.role).filter((item) => item.href !== '/dashboard')
 
   return (
-    <AppLayout user={user} title="Dashboard">
+    <AppLayout user={user} title={user.role === 'SuperAdmin' ? 'SchoolPilot Dashboard' : 'Dashboard'}>
       <p className="mb-6 text-gray-600">
         Welcome back, {user.firstName}. You are signed in as{' '}
         <span className="font-medium text-gray-900">{ROLE_LABELS[user.role] || user.role}</span>
-        {user.schoolName ? ` at ${user.schoolName}` : ''}.
+        {user.role === 'SuperAdmin' ? ' on SchoolPilot' : user.schoolName ? ` at ${user.schoolName}` : ''}.
       </p>
       {user.role === 'SchoolAdmin' && setupPending && (
         <section className="mb-8 rounded-lg border border-amber-300 bg-amber-50 p-6 shadow-sm">

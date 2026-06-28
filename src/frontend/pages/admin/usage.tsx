@@ -33,7 +33,7 @@ function UsagePage({ user }: { user: AuthUser }) {
     <AppLayout user={user} title="Usage Analytics">
       <p className="mb-6 text-sm text-gray-600">Resource usage for the last 30 days.</p>
       {!data && <p className="text-sm text-gray-500">Loading…</p>}
-      {data && (
+        {data && (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <StatCard label="API requests" value={data.totals.apiRequests} />
           <StatCard label="AI requests" value={data.totals.aiRequests} />
@@ -43,12 +43,16 @@ function UsagePage({ user }: { user: AuthUser }) {
           <StatCard label="Storage (MB)" value={storageMb} hint={`Limit: ${data.limits.storageGb ?? '—'} GB`} />
           {data.aiCredits && (
             <StatCard label="AI credits remaining" value={data.aiCredits.balance}
-              hint={`${data.aiCredits.usedThisMonth} used of ${data.aiCredits.monthlyGrant} this month`} />
+              hint={`${data.aiCredits.usedThisMonth} used of ${data.aiCredits.monthlyGrant} monthly grant — set per plan in Super Admin → Plans`} />
           )}
         </div>
       )}
+      <p className="mt-6 text-sm text-school-muted">
+        AI credits are included with your subscription plan (Professional and above). Usage is shared across all staff and students at your school.
+        Upgrade your plan or contact support for more credits.
+      </p>
     </AppLayout>
   )
 }
 
-export default withAuth(UsagePage, { roles: ['SchoolAdmin', 'SuperAdmin'] })
+export default withAuth(UsagePage, { roles: ['SchoolAdmin'] })
