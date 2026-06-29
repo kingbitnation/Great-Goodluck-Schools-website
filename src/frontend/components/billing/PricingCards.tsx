@@ -55,19 +55,25 @@ export default function PricingCards({
         const isCurrent = currentSlug === plan.slug
         const features = (plan.planFeatures || []).slice(0, featureLimit)
 
+        const pricingCardClass = !isRegister
+          ? plan.isPopular
+            ? 'border-school-royal/40 bg-gradient-to-b from-school-royal/5 to-white shadow-royal hover:-translate-y-2 hover:shadow-royal z-10 scale-[1.02]'
+            : 'border-school-border/60 bg-school-surface hover:-translate-y-1 hover:border-school-royal/20 hover:shadow-soft-lg'
+          : plan.isPopular
+            ? 'border-school-royal ring-2 ring-school-royal/20'
+            : 'border-school-border'
+
         return (
           <div
             key={plan.id}
-            className={`relative flex h-full min-w-0 flex-col rounded-2xl border bg-white shadow-soft transition duration-300 dark:bg-school-surface ${
-              isRegister ? 'p-4 sm:p-5' : 'p-6 hover:-translate-y-1 hover:shadow-soft-lg'
-            } ${
-              plan.isPopular
-                ? `border-school-royal ring-2 ring-school-royal/20 ${isRegister ? '' : 'z-10 scale-[1.02]'}`
-                : 'border-school-border'
+            className={`relative flex h-full min-w-0 flex-col rounded-2xl border shadow-soft transition duration-300 dark:bg-school-surface ${
+              isRegister ? 'bg-white p-4 sm:p-5' : `p-6 ${pricingCardClass}`
             } ${isCurrent ? 'ring-2 ring-school-gold' : ''}`}
           >
             {plan.isPopular && (
-              <span className="absolute -top-3 left-1/2 max-w-[90%] -translate-x-1/2 truncate rounded-full bg-school-royal px-3 py-0.5 text-xs font-bold uppercase tracking-wide text-white">
+              <span className={`absolute -top-3 left-1/2 max-w-[90%] -translate-x-1/2 truncate rounded-full px-3 py-0.5 text-xs font-bold uppercase tracking-wide text-white ${
+                isRegister ? 'bg-school-royal' : 'bg-gradient-to-r from-school-royal to-blue-600 shadow-soft'
+              }`}>
                 Most Popular
               </span>
             )}
@@ -141,17 +147,22 @@ export function BillingIntervalToggle({
   value,
   onChange,
   compact = false,
+  variant = 'light',
 }: {
   value: BillingInterval
   onChange: (v: BillingInterval) => void
   compact?: boolean
+  variant?: 'light' | 'dark'
 }) {
   const options: BillingInterval[] = ['monthly', 'quarterly', 'yearly']
+  const isDark = variant === 'dark'
   return (
     <div
-      className={`inline-flex max-w-full flex-wrap justify-center rounded-full border border-school-border bg-white shadow-soft dark:bg-school-surface ${
-        compact ? 'gap-1 p-1' : 'p-1'
-      }`}
+      className={`inline-flex max-w-full flex-wrap justify-center rounded-full border shadow-soft ${
+        isDark
+          ? 'border-white/15 bg-white/10 backdrop-blur-sm'
+          : 'border-school-border bg-white dark:bg-school-surface'
+      } ${compact ? 'gap-1 p-1' : 'p-1'}`}
     >
       {options.map((opt) => (
         <button
@@ -160,7 +171,15 @@ export function BillingIntervalToggle({
           onClick={() => onChange(opt)}
           className={`rounded-full font-medium capitalize transition ${
             compact ? 'px-3 py-1.5 text-xs sm:px-4 sm:py-2 sm:text-sm' : 'px-5 py-2 text-sm'
-          } ${value === opt ? 'bg-school-royal text-white shadow' : 'text-slate-600 hover:text-school-navy'}`}
+          } ${
+            value === opt
+              ? isDark
+                ? 'bg-school-gold text-school-navy shadow-glow'
+                : 'bg-school-royal text-white shadow'
+              : isDark
+                ? 'text-slate-300 hover:text-white'
+                : 'text-slate-600 hover:text-school-navy'
+          }`}
         >
           {opt}
           {opt === 'yearly' && (

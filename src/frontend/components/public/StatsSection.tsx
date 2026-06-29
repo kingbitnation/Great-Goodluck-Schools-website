@@ -3,33 +3,41 @@ import { useInView } from '../../hooks/useInView'
 import { useCountUp } from '../../hooks/useCountUp'
 import { fetchPublic } from '../../lib/publicApi'
 
+const STAT_ACCENTS = [
+  'from-blue-500/15 to-indigo-600/5 border-blue-500/20',
+  'from-amber-500/15 to-orange-600/5 border-amber-500/20',
+  'from-emerald-500/15 to-teal-600/5 border-emerald-500/20',
+  'from-violet-500/15 to-purple-600/5 border-violet-500/20',
+]
+
 type StatCounterProps = {
   value: string
   label: string
   delay?: number
+  accent?: string
 }
 
-function StatItem({ value, label, delay = 0 }: StatCounterProps) {
+function StatItem({ value, label, delay = 0, accent }: StatCounterProps) {
   const { ref, visible } = useInView()
   const display = useCountUp(value, visible)
 
   return (
     <div
       ref={ref}
-      className="content-card p-6 text-center sm:p-8"
+      className={`rounded-card border bg-gradient-to-br p-6 text-center shadow-soft transition hover:-translate-y-1 hover:shadow-soft-lg sm:p-8 ${accent}`}
       style={{ transitionDelay: `${delay}ms` }}
     >
       <p className="font-display text-3xl font-bold text-school-royal sm:text-4xl">{display}</p>
-      <p className="mt-2 text-sm font-medium text-school-muted">{label}</p>
+      <p className="mt-2 text-sm font-semibold text-school-muted">{label}</p>
     </div>
   )
 }
 
 const FALLBACK = [
-  { value: '1000+', label: 'Students' },
-  { value: '80+', label: 'Expert Teachers' },
-  { value: '25+', label: 'Years of Excellence' },
-  { value: '98%', label: 'WAEC Pass Rate' },
+  { value: '500+', label: 'Schools onboarded' },
+  { value: '50K+', label: 'Active users' },
+  { value: '15+', label: 'Modules included' },
+  { value: '99.9%', label: 'Platform uptime' },
 ]
 
 type StatsSectionProps = {
@@ -53,7 +61,13 @@ export default function StatsSection({ stats: propStats }: StatsSectionProps) {
     <section className="container-school -mt-10 relative z-10 sm:-mt-14">
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {stats.map((s, i) => (
-          <StatItem key={s.label} value={s.value} label={s.label} delay={i * 80} />
+          <StatItem
+            key={s.label}
+            value={s.value}
+            label={s.label}
+            delay={i * 80}
+            accent={STAT_ACCENTS[i % STAT_ACCENTS.length]}
+          />
         ))}
       </div>
     </section>

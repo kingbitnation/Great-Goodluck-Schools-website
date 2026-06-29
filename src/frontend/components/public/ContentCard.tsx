@@ -20,11 +20,9 @@ const badgeClass = {
 export default function ContentCard({ href, badge, badgeVariant = 'gold', image, title, excerpt, meta }: ContentCardProps) {
   const inner = (
   <>
-    {image && (
-      <div className="relative overflow-hidden rounded-t-card bg-gradient-to-br from-school-navy to-[#142d5c]">
-        {image}
-      </div>
-    )}
+    {image ? (
+      <div className="relative overflow-hidden rounded-t-card">{image}</div>
+    ) : null}
     <div className="p-6">
       <div className="mb-3 flex flex-wrap items-center gap-2">
         {badge && <span className={badgeClass[badgeVariant]}>{badge}</span>}
