@@ -36,6 +36,7 @@
     "vapid:generate": "node scripts/generate-vapid-keys.js",
     "deploy:preflight": "node scripts/production-preflight.js",
     "deploy:prod": "docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.local.yml --env-file .env.production up -d --build",
+    "vercel:deploy": "cd src/frontend && vercel --prod",
     "health:monitor": "node scripts/health-monitor.js",
     "lighthouse": "node scripts/lighthouse-audit.js",
     "security:audit": "node scripts/security-audit.js && npm audit --production --audit-level=high",
