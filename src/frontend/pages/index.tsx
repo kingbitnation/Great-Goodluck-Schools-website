@@ -7,6 +7,7 @@ import StatsSection from '../components/public/StatsSection'
 import ContentCard from '../components/public/ContentCard'
 import PrincipalMessage from '../components/public/PrincipalMessage'
 import Reveal from '../components/public/Reveal'
+import PlatformFeatures from '../components/public/PlatformFeatures'
 import SchoolProof from '../components/public/SchoolProof'
 import HowItWorks from '../components/public/HowItWorks'
 import { SectionLabel, SectionTitle } from '../components/public/Brand'
@@ -96,8 +97,9 @@ export default function Home() {
         <Hero />
         <StatsSection stats={home?.stats} />
         <SchoolProof />
+        <PlatformFeatures />
 
-        <section className="section-pad mesh-bg">
+        <section className="section-pad bg-white dark:bg-school-surface">
           <div className="container-school">
             <Reveal>
               <div className="text-center">
@@ -114,7 +116,7 @@ export default function Home() {
                 const fallback = FALLBACK_FEATURES[i % FALLBACK_FEATURES.length]
                 return (
                   <Reveal key={`${f.title}-${i}`} delay={i * 80}>
-                    <div className="group h-full rounded-card border border-school-border/60 bg-school-surface p-6 shadow-soft transition duration-200 hover:border-school-royal/40">
+                    <div className="card-energy group h-full rounded-card border border-school-border/60 bg-school-surface p-6 shadow-soft hover:border-school-royal/50">
                       <div className={`mb-4 flex h-12 w-12 items-center justify-center rounded-2xl ${fallback.iconClass}`}>
                         <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                           {fallback.icon}
@@ -211,20 +213,23 @@ export default function Home() {
         <section className="section-pad">
           <div className="container-school">
             <Reveal>
-              <div className="rounded-3xl border border-school-border bg-school-surface p-8 text-center sm:p-12">
-                <SectionTitle className="text-balance">
-                  Ready to run {home?.school?.name || 'your school'} on SchoolPilot?
-                </SectionTitle>
-                <p className="mx-auto mt-4 max-w-xl text-school-muted">
-                  Start your 14-day free trial. No credit card required.
-                </p>
-                <div className="mt-8 flex flex-wrap justify-center gap-4">
-                  <Link href="/register-school" className="btn-gold">
-                    Get started free
-                  </Link>
-                  <Link href="/contact" className="btn-navy">
-                    Book a demo
-                  </Link>
+              <div className="relative overflow-hidden rounded-3xl bg-school-navy p-8 text-center sm:p-14">
+                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(245,158,11,0.2),transparent_50%)]" />
+                <div className="relative">
+                  <SectionTitle light className="text-balance">
+                    Ready to run {home?.school?.name || 'your school'} on SchoolPilot?
+                  </SectionTitle>
+                  <p className="mx-auto mt-4 max-w-xl text-slate-300">
+                    Start your 14-day free trial. No credit card required.
+                  </p>
+                  <div className="mt-8 flex flex-wrap justify-center gap-4">
+                    <Link href="/register-school" className="btn-gold shadow-glow">
+                      Get started free
+                    </Link>
+                    <Link href="/contact" className="btn-outline">
+                      Book a demo
+                    </Link>
+                  </div>
                 </div>
               </div>
             </Reveal>

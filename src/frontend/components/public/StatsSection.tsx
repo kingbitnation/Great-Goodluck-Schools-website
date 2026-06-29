@@ -24,10 +24,12 @@ function StatItem({ value, label, delay = 0, accent }: StatCounterProps) {
   return (
     <div
       ref={ref}
-      className={`rounded-card border bg-gradient-to-br p-6 text-center shadow-soft transition hover:-translate-y-1 hover:shadow-soft-lg sm:p-8 ${accent}`}
+      className={`stat-pop rounded-card border bg-gradient-to-br p-6 text-center shadow-soft transition hover:-translate-y-1 hover:shadow-royal sm:p-8 ${accent}`}
       style={{ transitionDelay: `${delay}ms` }}
     >
-      <p className="font-display text-3xl font-bold text-school-royal sm:text-4xl">{display}</p>
+      <p className="font-display text-3xl font-black text-school-navy dark:text-school-text sm:text-4xl">
+        <span className="text-school-royal">{display}</span>
+      </p>
       <p className="mt-2 text-sm font-semibold text-school-muted">{label}</p>
     </div>
   )

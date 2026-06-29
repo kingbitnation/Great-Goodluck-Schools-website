@@ -5,36 +5,42 @@ const STEPS = [
     step: '01',
     title: 'Register your school',
     desc: 'Choose a plan, add your school details, and upload verification documents.',
+    color: 'bg-school-royal text-white',
   },
   {
     step: '02',
     title: 'Onboard your team',
     desc: 'Import classes, invite teachers, and give parents and students portal access.',
+    color: 'bg-school-gold text-school-navy',
   },
   {
     step: '03',
     title: 'Run term operations',
     desc: 'Collect fees, run CBT, publish results, and manage payroll from one dashboard.',
+    color: 'bg-school-green text-white',
   },
 ]
 
 export default function HowItWorks() {
   return (
-    <section className="section-pad border-y border-school-border/60 bg-school-bg">
+    <section className="section-pad border-y-4 border-school-royal/20 bg-school-navy text-white">
       <div className="container-school">
         <div className="max-w-xl">
-          <SectionLabel>How it works</SectionLabel>
-          <SectionTitle className="mt-4">Go live in days, not months</SectionTitle>
+          <SectionLabel light>How it works</SectionLabel>
+          <SectionTitle light className="mt-4">Go live in days, not months</SectionTitle>
         </div>
 
         <ol className="mt-10 grid gap-6 md:grid-cols-3">
           {STEPS.map((s) => (
-            <li key={s.step} className="rounded-card border border-school-border/70 bg-school-surface p-6">
-              <span className="font-display text-sm font-bold text-school-royal">{s.step}</span>
-              <h3 className="mt-3 font-display text-lg font-semibold text-school-navy dark:text-school-text">
-                {s.title}
-              </h3>
-              <p className="mt-2 text-sm leading-relaxed text-school-muted">{s.desc}</p>
+            <li
+              key={s.step}
+              className="card-energy rounded-card border border-white/10 bg-white/5 p-6 backdrop-blur-sm"
+            >
+              <span className={`inline-flex h-10 w-10 items-center justify-center rounded-xl font-display text-sm font-bold ${s.color}`}>
+                {s.step}
+              </span>
+              <h3 className="mt-4 font-display text-lg font-bold">{s.title}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-slate-300">{s.desc}</p>
             </li>
           ))}
         </ol>
