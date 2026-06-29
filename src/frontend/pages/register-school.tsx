@@ -8,6 +8,7 @@ import PricingCards, { BillingIntervalToggle, type Plan } from '../components/bi
 import type { BillingInterval } from '../lib/design-tokens'
 import { saveToken } from '../lib/auth'
 import { apiBaseUrl, parseJsonResponse } from '../lib/apiBase'
+import { fetchSubscriptionPlans } from '../lib/fetchPlans'
 import { passwordMeetsRules, passwordsMatch } from '../lib/passwordRules'
 import PasswordRulesList from '../components/ui/PasswordRulesList'
 
@@ -107,8 +108,7 @@ export default function RegisterSchool() {
   const [pendingDocType, setPendingDocType] = useState(DOC_TYPES[0].type)
 
   useEffect(() => {
-    fetch(`${apiBaseUrl()}/api/subscription-plans`)
-      .then((r) => r.json())
+    fetchSubscriptionPlans()
       .then((data: Plan[]) => {
         setPlans(data)
         const slug = resolveInitialPlan(data, initialPlan)

@@ -2052,9 +2052,9 @@ async function seed() {
       title: 'Principal Message',
       body: {
         principal: {
-          name: 'Dr. Adaeze Okonkwo',
-          title: 'Principal',
-          initials: 'DA',
+          name: 'King Bit',
+          title: 'Founder, SchoolPilot',
+          initials: 'KB',
           paragraphs: [
             'Welcome to our school — a place where every child is seen, valued, and challenged to reach their fullest potential.',
             'Our commitment goes beyond the classroom. With modern facilities, dedicated teachers, and a digital learning platform, we prepare students for life.',

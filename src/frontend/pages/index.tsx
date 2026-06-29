@@ -7,9 +7,8 @@ import StatsSection from '../components/public/StatsSection'
 import ContentCard from '../components/public/ContentCard'
 import PrincipalMessage from '../components/public/PrincipalMessage'
 import Reveal from '../components/public/Reveal'
-import ModuleMarquee from '../components/public/ModuleMarquee'
+import SchoolProof from '../components/public/SchoolProof'
 import HowItWorks from '../components/public/HowItWorks'
-import Testimonials from '../components/public/Testimonials'
 import { SectionLabel, SectionTitle } from '../components/public/Brand'
 import { fetchPublic, type HomeData, type PublicPost, type PublicEvent } from '../lib/publicApi'
 
@@ -96,7 +95,7 @@ export default function Home() {
       <PublicLayout title="" subtitle="" noHero fullWidth>
         <Hero />
         <StatsSection stats={home?.stats} />
-        <ModuleMarquee />
+        <SchoolProof />
 
         <section className="section-pad mesh-bg">
           <div className="container-school">
@@ -115,7 +114,7 @@ export default function Home() {
                 const fallback = FALLBACK_FEATURES[i % FALLBACK_FEATURES.length]
                 return (
                   <Reveal key={`${f.title}-${i}`} delay={i * 80}>
-                    <div className="group h-full rounded-card border border-school-border/60 bg-school-surface p-6 shadow-soft transition duration-300 hover:-translate-y-2 hover:border-school-royal/30 hover:shadow-royal">
+                    <div className="group h-full rounded-card border border-school-border/60 bg-school-surface p-6 shadow-soft transition duration-200 hover:border-school-royal/40">
                       <div className={`mb-4 flex h-12 w-12 items-center justify-center rounded-2xl ${fallback.iconClass}`}>
                         <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                           {fallback.icon}
@@ -132,7 +131,6 @@ export default function Home() {
         </section>
 
         <HowItWorks />
-        <Testimonials />
 
         <section className="section-pad bg-white dark:bg-school-surface">
           <div className="container-school">
@@ -213,23 +211,20 @@ export default function Home() {
         <section className="section-pad">
           <div className="container-school">
             <Reveal>
-              <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-school-navy via-[#1e3a5f] to-school-royal p-8 text-center shadow-royal sm:p-14">
-                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_70%_30%,rgba(245,158,11,0.15),transparent_50%)]" />
-                <div className="relative">
-                  <SectionTitle light className="text-balance">
-                    Ready to transform {home?.school?.name || 'your school'}?
-                  </SectionTitle>
-                  <p className="mx-auto mt-4 max-w-xl text-slate-300">
-                    Join schools across Nigeria using SchoolPilot. Start your 14-day free trial — no credit card needed.
-                  </p>
-                  <div className="mt-8 flex flex-wrap justify-center gap-4">
-                    <Link href="/register-school" className="btn-gold shadow-glow">
-                      Get started free
-                    </Link>
-                    <Link href="/contact" className="btn-outline">
-                      Book a demo
-                    </Link>
-                  </div>
+              <div className="rounded-3xl border border-school-border bg-school-surface p-8 text-center sm:p-12">
+                <SectionTitle className="text-balance">
+                  Ready to run {home?.school?.name || 'your school'} on SchoolPilot?
+                </SectionTitle>
+                <p className="mx-auto mt-4 max-w-xl text-school-muted">
+                  Start your 14-day free trial. No credit card required.
+                </p>
+                <div className="mt-8 flex flex-wrap justify-center gap-4">
+                  <Link href="/register-school" className="btn-gold">
+                    Get started free
+                  </Link>
+                  <Link href="/contact" className="btn-navy">
+                    Book a demo
+                  </Link>
                 </div>
               </div>
             </Reveal>
