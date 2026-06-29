@@ -476,6 +476,8 @@ function registerResourceRoutes(app, { prisma, requireRole, requirePermission, e
       if (enqueueEmail) {
         notifyAttendanceMarked(prisma, attendance).catch((err) => console.error('Attendance email error:', err))
       }
+      const { onAttendanceMarked } = require('../lib/workflowEngine')
+      onAttendanceMarked(prisma, attendance).catch((err) => console.error('Workflow engine error:', err))
       res.status(201).json(attendance)
     } catch (err) {
       console.error(err)

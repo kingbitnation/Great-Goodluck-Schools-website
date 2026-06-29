@@ -49,6 +49,11 @@ const { registerNotificationRoutes } = require('./routes/notificationRoutes')
 const { registerSystemRoutes } = require('./routes/systemRoutes')
 const { registerPlatformRoutes } = require('./routes/platformRoutes')
 const { registerBillingRoutes } = require('./routes/billingRoutes')
+const { registerDeveloperRoutes } = require('./routes/developerRoutes')
+const { registerCalendarRoutes } = require('./routes/calendarRoutes')
+const { registerDocumentRoutes } = require('./routes/documentRoutes')
+const { registerOAuthRoutes, registerPaymentGatewayRoutes } = require('./routes/oauthRoutes')
+const { registerEnterpriseRoutes } = require('./routes/enterpriseRoutes')
 const { createModuleFeatureGuard } = require('./middleware/moduleFeatureGuard')
 const { csrfProtection, registerCsrfRoute } = require('./middleware/csrf')
 const { recordUsage } = require('./lib/platformHelpers')
@@ -63,7 +68,12 @@ app.use(helmet({
     : false,
 }))
 app.use(cors({ origin: true, credentials: true }))
-app.use(express.json({ limit: '2mb' }))
+app.use(express.json({
+  limit: '2mb',
+  verify: (req, _res, buf) => {
+    if (req.originalUrl === '/api/webhooks/paystack') req.rawBody = buf
+  },
+}))
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')))
 app.use(createRateLimiter())
 
@@ -148,7 +158,7 @@ app.use((req, res, next) => {
 app.use(moduleFeatureGuard)
 
 app.use((req, res, next) => {
-  const openPaths = ['/api/health', '/api/auth/', '/api/public/', '/api/webhooks/', '/api/docs/']
+  const openPaths = ['/api/health', '/api/auth/', '/api/public/', '/api/webhooks/', '/api/oauth/', '/api/docs/']
   if (!req.path.startsWith('/api/')) return next()
   if (openPaths.some((p) => req.path.startsWith(p))) return next()
   if (!req.user || req.user.role === 'SuperAdmin') return next()
@@ -177,6 +187,12 @@ registerPublicAdminRoutes(app, { prisma, requireRole })
 registerNotificationRoutes(app, { prisma, requireRole, requirePermission })
 registerSystemRoutes(app, { prisma, requireRole })
 registerPlatformRoutes(app, { prisma, requireRole })
+registerDeveloperRoutes(app, { prisma, requireRole })
+registerCalendarRoutes(app, { prisma, requireRole })
+registerDocumentRoutes(app, { prisma, requireRole })
+registerOAuthRoutes(app, { prisma, requireRole })
+registerPaymentGatewayRoutes(app, { prisma, requireRole, dispatchNotification })
+registerEnterpriseRoutes(app, { prisma, requireRole, dispatchNotification })
 registerCompatRoutes(app, { prisma, requireRole })
 registerResourceRoutes(app, { prisma, requireRole, requirePermission, enqueueEmail, enforceStudentLimit })
 registerFinanceRoutes(app, { prisma, requireRole, requirePermission, enqueueEmail })
@@ -207,7 +223,9 @@ runFeeReminderSweep()
 setInterval(runFeeReminderSweep, 24 * 60 * 60 * 1000)
 
 const { startSubscriptionJobs } = require('./lib/subscriptionJobs')
+const { startGoogleCalendarSyncJob } = require('./lib/googleCalendarSync')
 startSubscriptionJobs(prisma, { dispatchNotification })
+startGoogleCalendarSyncJob(prisma)
 
 app.post('/api/public/contact', async (req, res) => {
   const { name, email, message } = req.body

@@ -2206,6 +2206,45 @@ async function seed() {
     })
   }
   console.log('✓ Feature flags seeded')
+
+  const integrationProviders = [
+    { slug: 'google-workspace', name: 'Google Workspace', category: 'productivity', description: 'Calendar, Drive, and SSO for staff.', sortOrder: 0 },
+    { slug: 'zoom', name: 'Zoom', category: 'video', description: 'Auto-create Zoom meetings for live classes.', sortOrder: 1 },
+    { slug: 'paystack', name: 'Paystack', category: 'payments', description: 'Online fee collections.', sortOrder: 2 },
+    { slug: 'whatsapp', name: 'WhatsApp Business', category: 'messaging', description: 'Fee reminders via WhatsApp.', sortOrder: 3 },
+  ]
+  for (const p of integrationProviders) {
+    await prisma.integrationProvider.upsert({
+      where: { slug: p.slug },
+      update: { name: p.name, description: p.description, category: p.category, sortOrder: p.sortOrder },
+      create: { ...p, isActive: true },
+    })
+  }
+
+  const absentWorkflow = await prisma.workflowRule.findFirst({
+    where: { schoolId: school.id, name: 'Notify parent after 3 absences' },
+  })
+  if (!absentWorkflow) {
+    await prisma.workflowRule.create({
+      data: {
+        schoolId: school.id,
+        name: 'Notify parent after 3 absences',
+        description: 'Sample automation — edit in Admin → Automation',
+        trigger: 'attendance.absent_streak',
+        conditions: { minAbsentDays: 3 },
+        actions: [
+          {
+            type: 'notify',
+            title: 'Attendance concern',
+            body: 'Your child has been absent for several consecutive days. Please contact the school.',
+            channels: ['in_app', 'email'],
+          },
+        ],
+        isActive: true,
+      },
+    })
+  }
+  console.log('✓ Enterprise integrations catalog & sample workflow seeded')
 }
 
 seed()

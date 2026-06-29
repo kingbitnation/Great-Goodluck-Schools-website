@@ -10,8 +10,8 @@ const DEFAULT = {
   title: 'Founder, SchoolPilot',
   initials: 'KB',
   paragraphs: [
-    'We built SchoolPilot because running a school in Nigeria should not mean drowning in spreadsheets, late fee follow-ups, and parents calling every results season.',
-    'This platform is for proprietors who want one serious system — fees, exams, attendance, payroll, and parent communication — without stitching five different tools together.',
+    'SchoolPilot was built to solve a real problem: schools juggling fees in one app, results in another, and parent updates on WhatsApp.',
+    'We designed one platform so administrators, teachers, students, and parents work from the same source of truth — with tools that fit how Nigerian schools actually operate.',
   ],
 }
 
@@ -31,42 +31,33 @@ export default function PrincipalMessage({ data }: PrincipalMessageProps) {
   const founder = normalizePrincipal(data)
 
   return (
-    <section className="section-pad relative overflow-hidden bg-[#050d1a]">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_30%_50%,rgba(245,158,11,0.08),transparent_60%)]" />
-      <div className="container-school relative">
-        <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-20">
+    <section className="section-pad bg-slate-50 dark:bg-school-surface">
+      <div className="container-school">
+        <div className="grid items-center gap-12 lg:grid-cols-2">
           <div>
-            <SectionLabel light>From the founder</SectionLabel>
-            <SectionTitle light className="mt-4">
-              A Message of Welcome
-            </SectionTitle>
-            <div className="mt-8 space-y-5 text-base leading-relaxed text-slate-400">
+            <SectionLabel>Leadership</SectionLabel>
+            <SectionTitle className="mt-4">Why we built SchoolPilot</SectionTitle>
+            <div className="mt-6 space-y-4 text-base leading-relaxed text-school-muted">
               {founder.paragraphs.map((p) => (
                 <p key={p.slice(0, 48)}>{p}</p>
               ))}
             </div>
-            <div className="mt-10 flex items-center gap-4 border-t border-white/10 pt-8">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-school-gold to-amber-600 font-display text-lg font-bold text-school-navy shadow-glow">
+            <div className="mt-8 flex items-center gap-4 border-t border-school-border pt-6">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-school-royal font-display text-sm font-bold text-white">
                 {founder.initials}
               </div>
               <div>
-                <p className="font-display text-lg font-bold text-white">{founder.name}</p>
-                <p className="text-sm text-school-gold">{founder.title}</p>
+                <p className="font-semibold text-school-navy dark:text-school-text">{founder.name}</p>
+                <p className="text-sm text-school-muted">{founder.title}</p>
               </div>
             </div>
           </div>
-
-          <div className="relative">
-            <div className="absolute -inset-1 rounded-3xl bg-gradient-to-br from-school-gold/30 via-school-royal/20 to-transparent blur-sm" />
-            <blockquote className="card-luxury relative rounded-3xl border border-white/10 bg-white/[0.04] p-8 backdrop-blur-md sm:p-10">
-              <p className="text-xs font-bold uppercase tracking-[0.3em] text-school-gold">SchoolPilot</p>
-              <p className="font-serif mt-6 text-3xl italic leading-snug text-white sm:text-4xl">
-                &ldquo;Education deserves software that actually works — and proprietors deserve
-                software that respects them.&rdquo;
-              </p>
-              <footer className="mt-8 text-sm text-slate-500">— {founder.name}</footer>
-            </blockquote>
-          </div>
+          <blockquote className="rounded-2xl border border-school-border bg-white p-8 shadow-soft dark:bg-school-surface">
+            <p className="text-lg leading-relaxed text-school-navy dark:text-school-text">
+              &ldquo;Schools deserve software that is reliable, affordable, and built with their daily workflow in mind — not copied from foreign systems.&rdquo;
+            </p>
+            <footer className="mt-4 text-sm text-school-muted">— {founder.name}</footer>
+          </blockquote>
         </div>
       </div>
     </section>

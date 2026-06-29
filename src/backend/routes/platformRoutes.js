@@ -5,6 +5,7 @@ const {
   buildBillingOverview,
   buildSchoolUsageReport,
   buildPlatformHealth,
+  buildSchoolSuccessMetrics,
 } = require('../lib/platformHelpers')
 const { processReferralReward } = require('../lib/referralHelpers')
 
@@ -45,6 +46,15 @@ function registerPlatformRoutes(app, { prisma, requireRole }) {
   app.get('/api/platform/health', superAdmin, async (req, res) => {
     try {
       res.json(await buildPlatformHealth(prisma))
+    } catch (err) {
+      console.error(err)
+      res.status(500).json({ error: 'Server error' })
+    }
+  })
+
+  app.get('/api/platform/success-metrics', superAdmin, async (_req, res) => {
+    try {
+      res.json(await buildSchoolSuccessMetrics(prisma))
     } catch (err) {
       console.error(err)
       res.status(500).json({ error: 'Server error' })

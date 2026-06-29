@@ -58,12 +58,13 @@ const CARD_GRADIENTS = [
   'from-school-royal via-blue-700 to-indigo-900',
 ]
 
-function CardImage({ emoji, index = 0 }: { emoji: string; index?: number }) {
+function CardImage({ title, index = 0 }: { title: string; index?: number }) {
   const gradient = CARD_GRADIENTS[index % CARD_GRADIENTS.length]
+  const initial = (title || 'N').charAt(0).toUpperCase()
   return (
     <div className={`relative flex h-44 items-center justify-center overflow-hidden bg-gradient-to-br ${gradient}`}>
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.2),transparent_50%)]" />
-      <span className="relative text-6xl drop-shadow-lg">{emoji}</span>
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.15),transparent_50%)]" />
+      <span className="relative font-display text-5xl font-bold text-white/90">{initial}</span>
     </div>
   )
 }
@@ -162,7 +163,7 @@ export default function Home() {
                       title={n.title}
                       excerpt={n.excerpt || ''}
                       meta={new Date(n.publishedAt).toLocaleDateString('en', { month: 'short', day: 'numeric', year: 'numeric' })}
-                      image={<CardImage emoji={n.icon || '📢'} index={i} />}
+                      image={<CardImage title={n.title} index={i} />}
                     />
                   </Reveal>
                 ))
@@ -179,8 +180,8 @@ export default function Home() {
                   <SectionLabel>Upcoming Events</SectionLabel>
                   <SectionTitle className="mt-4">School Calendar</SectionTitle>
                 </div>
-                <Link href="/events" className="text-sm font-semibold text-school-royal hover:text-school-gold">
-                  Full calendar →
+                <Link href="/calendar" className="text-sm font-semibold text-school-royal hover:text-school-gold">
+                  Open school calendar →
                 </Link>
               </div>
             </Reveal>
@@ -215,25 +216,20 @@ export default function Home() {
         <section className="section-pad">
           <div className="container-school">
             <Reveal>
-              <div className="exclusive-scene relative overflow-hidden rounded-3xl border border-white/10 p-8 text-center shadow-luxury sm:p-14">
-                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_70%_20%,rgba(245,158,11,0.15),transparent_55%)]" />
-                <div className="pointer-events-none absolute inset-0 bg-noise opacity-20" />
-                <div className="relative">
-                  <p className="font-serif text-lg italic text-school-gold">Your move.</p>
-                  <SectionTitle light className="mt-3 text-balance">
-                    Ready to run {home?.school?.name || 'your school'} on SchoolPilot?
-                  </SectionTitle>
-                  <p className="mx-auto mt-4 max-w-xl text-slate-400">
-                    14-day trial. Full access. No card. Built by King Bit for schools that demand more.
-                  </p>
-                  <div className="mt-8 flex flex-wrap justify-center gap-4">
-                    <Link href="/register-school" className="btn-exclusive">
-                      Claim your trial
-                    </Link>
-                    <Link href="/contact" className="btn-ghost-light">
-                      Book a private demo
-                    </Link>
-                  </div>
+              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-school-navy to-school-royal p-8 text-center text-white shadow-lg sm:p-12">
+                <SectionTitle light className="mt-3 text-balance">
+                  Ready to modernize {home?.school?.name || 'your school'}?
+                </SectionTitle>
+                <p className="mx-auto mt-4 max-w-xl text-slate-200">
+                  Start your 14-day trial with full access. No credit card required.
+                </p>
+                <div className="mt-8 flex flex-wrap justify-center gap-4">
+                  <Link href="/register-school" className="btn-gold">
+                    Register your school
+                  </Link>
+                  <Link href="/contact" className="rounded-pill border border-white/30 px-6 py-3 text-sm font-semibold hover:bg-white/10">
+                    Contact sales
+                  </Link>
                 </div>
               </div>
             </Reveal>

@@ -43,11 +43,15 @@ describe('penetration: role escalation', () => {
   })
 })
 
-describe('penetration: removed payment webhooks', () => {
-  it('flutterwave webhook module is not registered', () => {
-    const serverSrc = fs.readFileSync(path.join(__dirname, '../../src/backend/server.js'), 'utf8')
-    assert.ok(!serverSrc.includes('registerFlutterwaveWebhook'))
-    assert.ok(!fs.existsSync(path.join(__dirname, '../../src/backend/lib/flutterwaveWebhook.js')))
+describe('penetration: payment webhooks', () => {
+  it('paystack webhook verifies signature when secret configured', () => {
+    const { verifyPaystackWebhookSignature } = require('../../src/backend/lib/oauthProviders')
+    const crypto = require('crypto')
+    const secret = 'test-secret'
+    const body = JSON.stringify({ event: 'charge.success' })
+    const sig = crypto.createHmac('sha512', secret).update(body).digest('hex')
+    assert.equal(verifyPaystackWebhookSignature(body, sig, secret), true)
+    assert.equal(verifyPaystackWebhookSignature(body, 'bad', secret), false)
   })
 })
 

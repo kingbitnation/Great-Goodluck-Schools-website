@@ -256,6 +256,17 @@ model School {
   subscriptionTransactionLogs SubscriptionTransactionLog[]
   schoolAddons        SchoolAddon[]
   featureUsageLogs    FeatureUsageLog[]
+  developerApiKeys    DeveloperApiKey[]
+  webhookEndpoints    WebhookEndpoint[]
+  schoolIntegrations  SchoolIntegration[]
+  workflowRules       WorkflowRule[]
+  calendarEvents      CalendarEvent[]
+  documentFolders     DocumentFolder[]
+  documentVault       DocumentVault[]
+  customForms         CustomForm[]
+  visitorLogs         VisitorLog[]
+  maintenanceTickets  MaintenanceTicket[]
+  consentForms        ConsentForm[]
   @@index([status])
 }
 
@@ -2754,4 +2765,320 @@ model PlatformHealthIncident {
   startedAt   DateTime @default(now())
   resolvedAt  DateTime?
   createdAt   DateTime @default(now())
+}
+
+// ============ ENTERPRISE: DEVELOPER & INTEGRATIONS ============
+model DeveloperApiKey {
+  id          String    @id @default(uuid())
+  schoolId    String
+  school      School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  name        String
+  keyPrefix   String
+  keyHash     String    @unique
+  scopes      String[]  @default([])
+  rateLimit   Int       @default(1000)
+  lastUsedAt  DateTime?
+  expiresAt   DateTime?
+  revokedAt   DateTime?
+  createdById String?
+  createdAt   DateTime  @default(now())
+
+  @@index([schoolId])
+  @@index([keyPrefix])
+}
+
+model WebhookEndpoint {
+  id          String   @id @default(uuid())
+  schoolId    String
+  school      School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  url         String
+  secret      String
+  events      String[] @default([])
+  isActive    Boolean  @default(true)
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deliveries  WebhookDelivery[]
+
+  @@index([schoolId])
+}
+
+model WebhookDelivery {
+  id           String   @id @default(uuid())
+  endpointId   String
+  endpoint     WebhookEndpoint @relation(fields: [endpointId], references: [id], onDelete: Cascade)
+  event        String
+  payload      Json
+  status       String   @default("pending")
+  responseCode Int?
+  responseBody String?
+  attempts     Int      @default(0)
+  nextRetryAt  DateTime?
+  deliveredAt  DateTime?
+  createdAt    DateTime @default(now())
+
+  @@index([endpointId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model IntegrationProvider {
+  id           String   @id @default(uuid())
+  slug         String   @unique
+  name         String
+  category     String   @default("general")
+  description  String?
+  iconUrl      String?
+  configSchema Json?
+  isActive     Boolean  @default(true)
+  sortOrder    Int      @default(0)
+  createdAt    DateTime @default(now())
+}
+
+model SchoolIntegration {
+  id           String    @id @default(uuid())
+  schoolId     String
+  school       School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  providerSlug String
+  status       String    @default("disconnected")
+  config       Json?
+  lastSyncAt   DateTime?
+  lastError    String?
+  connectedAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@unique([schoolId, providerSlug])
+  @@index([schoolId])
+  @@index([providerSlug])
+}
+
+model WorkflowRule {
+  id          String    @id @default(uuid())
+  schoolId    String
+  school      School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  trigger     String
+  conditions  Json?
+  actions     Json
+  isActive    Boolean   @default(true)
+  runCount    Int       @default(0)
+  lastRunAt   DateTime?
+  createdById String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  runs        WorkflowRun[]
+
+  @@index([schoolId])
+  @@index([trigger])
+  @@index([isActive])
+}
+
+model WorkflowRun {
+  id        String   @id @default(uuid())
+  ruleId    String
+  rule      WorkflowRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+  status    String   @default("completed")
+  trigger   String?
+  context   Json?
+  log       Json?
+  createdAt DateTime @default(now())
+
+  @@index([ruleId])
+  @@index([createdAt])
+}
+
+// ============ CALENDAR HUB ============
+model CalendarEvent {
+  id          String   @id @default(uuid())
+  schoolId    String
+  school      School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  startAt     DateTime
+  endAt       DateTime?
+  allDay      Boolean  @default(false)
+  category    String   @default("custom")
+  color       String?  @default("#f59e0b")
+  location    String?
+  createdById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([schoolId])
+  @@index([startAt])
+  @@index([category])
+}
+
+// ============ DOCUMENT VAULT ============
+model DocumentFolder {
+  id        String   @id @default(uuid())
+  schoolId  String
+  school    School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  parentId  String?
+  parent    DocumentFolder? @relation("FolderTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children  DocumentFolder[] @relation("FolderTree")
+  name      String
+  createdAt DateTime @default(now())
+
+  documents DocumentVault[]
+
+  @@index([schoolId])
+  @@index([parentId])
+}
+
+model DocumentVault {
+  id               String    @id @default(uuid())
+  schoolId         String
+  school           School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  folderId         String?
+  folder           DocumentFolder? @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  title            String
+  category         String    @default("general")
+  description      String?
+  visibility       String    @default("staff")
+  allowedRoles     String[]  @default([])
+  studentId        String?
+  employeeId       String?
+  expiresAt        DateTime?
+  archivedAt       DateTime?
+  createdById      String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  versions         DocumentVersion[]
+
+  @@index([schoolId])
+  @@index([folderId])
+  @@index([category])
+  @@index([expiresAt])
+  @@index([studentId])
+}
+
+model DocumentVersion {
+  id           String   @id @default(uuid())
+  documentId   String
+  document     DocumentVault @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  versionNumber Int
+  fileUrl      String
+  mimeType     String?
+  fileSize     Int?
+  changeNote   String?
+  uploadedById String?
+  createdAt    DateTime @default(now())
+
+  @@unique([documentId, versionNumber])
+  @@index([documentId])
+}
+
+// ============ CUSTOM FORMS ============
+model CustomForm {
+  id          String   @id @default(uuid())
+  schoolId    String
+  school      School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  title       String
+  slug        String
+  description String?
+  category    String   @default("general")
+  fields      Json
+  isPublished Boolean  @default(false)
+  createdById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  submissions FormSubmission[]
+
+  @@unique([schoolId, slug])
+  @@index([schoolId])
+}
+
+model FormSubmission {
+  id           String   @id @default(uuid())
+  formId       String
+  form         CustomForm @relation(fields: [formId], references: [id], onDelete: Cascade)
+  data         Json
+  submitterEmail String?
+  submitterName  String?
+  status       String   @default("submitted")
+  createdAt    DateTime @default(now())
+
+  @@index([formId])
+}
+
+// ============ VISITOR MANAGEMENT ============
+model VisitorLog {
+  id           String    @id @default(uuid())
+  schoolId     String
+  school       School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  fullName     String
+  phone        String?
+  purpose      String
+  hostName     String?
+  passCode     String    @unique
+  photoUrl     String?
+  status       String    @default("checked_in")
+  checkInAt    DateTime  @default(now())
+  checkOutAt   DateTime?
+  registeredById String?
+  createdAt    DateTime  @default(now())
+
+  @@index([schoolId])
+  @@index([status])
+}
+
+// ============ MAINTENANCE ============
+model MaintenanceTicket {
+  id           String    @id @default(uuid())
+  schoolId     String
+  school       School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  title        String
+  description  String
+  category     String    @default("general")
+  priority     String    @default("medium")
+  status       String    @default("open")
+  location     String?
+  reportedById String?
+  assignedToId String?
+  resolvedAt   DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([schoolId])
+  @@index([status])
+  @@index([priority])
+}
+
+// ============ PARENT CONSENT ============
+model ConsentForm {
+  id          String   @id @default(uuid())
+  schoolId    String
+  school      School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  body        String
+  classId     String?
+  expiresAt   DateTime?
+  isActive    Boolean  @default(true)
+  createdById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  responses   ConsentResponse[]
+
+  @@index([schoolId])
+}
+
+model ConsentResponse {
+  id            String   @id @default(uuid())
+  formId        String
+  form          ConsentForm @relation(fields: [formId], references: [id], onDelete: Cascade)
+  parentId      String?
+  studentId     String?
+  status        String   @default("pending")
+  signatureName String?
+  signedAt      DateTime?
+  note          String?
+  createdAt     DateTime @default(now())
+
+  @@index([formId])
+  @@index([parentId])
+  @@index([studentId])
 }

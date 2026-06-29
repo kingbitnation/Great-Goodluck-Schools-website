@@ -23,7 +23,7 @@ function issueCsrfToken(res) {
 
 function csrfProtection(req, res, next) {
   if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next()
-  const open = ['/api/auth/login', '/api/auth/register', '/api/auth/refresh', '/api/public/', '/api/webhooks/']
+  const open = ['/api/auth/login', '/api/auth/register', '/api/auth/refresh', '/api/public/', '/api/webhooks/', '/api/forms/']
   if (open.some((p) => req.path.startsWith(p))) return next()
   if (req.headers.authorization) return next()
 

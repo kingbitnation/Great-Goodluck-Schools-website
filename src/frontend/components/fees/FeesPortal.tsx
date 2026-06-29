@@ -64,9 +64,20 @@ export default function FeesPortal({ user, studentId, title = 'Fees & Payments',
   const [processing, setProcessing] = useState(false)
   const [pendingPayment, setPendingPayment] = useState<Payment | null>(null)
   const [bankDetails, setBankDetails] = useState<BankDetails | null>(null)
+  const [gateways, setGateways] = useState<Array<{ id: string; label: string; available: boolean }>>([])
+  const [paymentMethod, setPaymentMethod] = useState<'manual' | 'paystack'>('manual')
   const fileRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => { if (studentId) loadData() }, [studentId])
+
+  useEffect(() => {
+    apiGet<{ gateways: Array<{ id: string; label: string; available: boolean }> }>('/api/payments/gateways')
+      .then((d) => {
+        setGateways(d.gateways)
+        if (d.gateways.some((g) => g.id === 'paystack')) setPaymentMethod('paystack')
+      })
+      .catch(() => {})
+  }, [])
 
   async function loadData() {
     try {
@@ -115,6 +126,14 @@ export default function FeesPortal({ user, studentId, title = 'Fees & Payments',
       setError('')
 
       const payload = { studentId, feeId: selectedFee || null, amount, installmentId: selectedInstallment || null, email: user.email }
+
+      if (paymentMethod === 'paystack' && gateways.some((g) => g.id === 'paystack')) {
+        const res = await apiPost<{ authorizationUrl: string }>('/api/payments/paystack/initialize', payload)
+        if (res.authorizationUrl) {
+          window.location.href = res.authorizationUrl
+          return
+        }
+      }
 
       const res = await apiPost<{ payment: Payment; bankDetails: BankDetails }>('/api/payments/manual', payload)
       setPendingPayment(res.payment)
@@ -231,7 +250,20 @@ export default function FeesPortal({ user, studentId, title = 'Fees & Payments',
                       </p>
                     )}
                     <input type="number" min="1" value={payAmount} onChange={(e) => setPayAmount(e.target.value)} className="w-full" placeholder="Amount" />
-                    <p className="text-xs text-slate-500">Pay by bank transfer, then upload your receipt.</p>
+                    {gateways.length > 1 && (
+                      <div className="space-y-2">
+                        <p className="text-xs font-medium text-slate-600">Payment method</p>
+                        {gateways.map((g) => (
+                          <label key={g.id} className="flex items-center gap-2 text-sm">
+                            <input type="radio" name="gateway" checked={paymentMethod === g.id} onChange={() => setPaymentMethod(g.id as 'manual' | 'paystack')} />
+                            {g.label}
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                    <p className="text-xs text-slate-500">
+                      {paymentMethod === 'paystack' ? 'Pay instantly with card, bank, or USSD via Paystack.' : 'Pay by bank transfer, then upload your receipt.'}
+                    </p>
                   </div>
                   <div className="mt-6 flex gap-3">
                     <button onClick={handlePayment} disabled={processing} className="btn-gold flex-1 justify-center">{processing ? 'Processing...' : 'Continue'}</button>

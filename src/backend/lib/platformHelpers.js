@@ -338,10 +338,102 @@ async function buildPlatformHealth(prisma) {
   }
 }
 
+async function buildSchoolSuccessMetrics(prisma) {
+  const now = new Date()
+  const monthStart = startOfMonth(now)
+  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+  const ninetyDaysAgo = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000)
+
+  const [
+    trialsStarted,
+    trialsConverted,
+    trialsExpired,
+    cancelledSubs,
+    activeSubs,
+    churnedLast90,
+    featureUsage,
+    schoolsByMonth,
+    monthlyLogins,
+  ] = await Promise.all([
+    prisma.schoolSubscription.count({ where: { createdAt: { gte: thirtyDaysAgo } } }),
+    prisma.schoolSubscription.count({
+      where: { status: 'active', trialEndsAt: { not: null }, updatedAt: { gte: thirtyDaysAgo } },
+    }),
+    prisma.schoolSubscription.count({
+      where: { status: { in: ['expired', 'cancelled'] }, trialEndsAt: { lt: now } },
+    }),
+    prisma.schoolSubscription.count({ where: { status: 'cancelled' } }),
+    prisma.schoolSubscription.count({ where: { status: { in: ['active', 'trial'] } } }),
+    prisma.schoolSubscription.count({
+      where: { status: 'cancelled', cancelledAt: { gte: ninetyDaysAgo } },
+    }),
+    prisma.featureUsageLog.groupBy({
+      by: ['featureKey'],
+      _sum: { count: true },
+      where: { createdAt: { gte: thirtyDaysAgo } },
+    }),
+    prisma.school.groupBy({
+      by: ['status'],
+      _count: { _all: true },
+    }),
+    prisma.loginHistory.count({ where: { createdAt: { gte: thirtyDaysAgo }, success: true } }),
+  ])
+
+  const trialConversionRate = trialsStarted > 0 ? Math.round((trialsConverted / trialsStarted) * 100) : 0
+  const churnRate = activeSubs + churnedLast90 > 0
+    ? Math.round((churnedLast90 / (activeSubs + churnedLast90)) * 100)
+    : 0
+
+  const adoption = featureUsage
+    .map((f) => ({ feature: f.featureKey, usage: f._sum.count || 0 }))
+    .sort((a, b) => b.usage - a.usage)
+
+  const registrations = await prisma.schoolRegistration.groupBy({
+    by: ['status'],
+    _count: { _all: true },
+    where: { createdAt: { gte: ninetyDaysAgo } },
+  })
+
+  const paidSchools = await prisma.schoolSubscription.count({ where: { status: 'active', manualOverride: false } })
+  const avgRevenuePerSchool = paidSchools > 0
+    ? (await buildPlatformMetrics(prisma)).revenue.mrr / paidSchools
+    : 0
+
+  return {
+    checkedAt: now.toISOString(),
+    trials: {
+      started30d: trialsStarted,
+      converted30d: trialsConverted,
+      conversionRate: trialConversionRate,
+      expired: trialsExpired,
+    },
+    churn: {
+      rate90d: churnRate,
+      cancelledTotal: cancelledSubs,
+      cancelled90d: churnedLast90,
+    },
+    retention: {
+      activeSubscriptions: activeSubs,
+      estimatedLtv: Math.round(avgRevenuePerSchool * 12),
+      avgMrrPerSchool: Math.round(avgRevenuePerSchool),
+    },
+    registrations: registrations.map((r) => ({ status: r.status, count: r._count._all })),
+    featureAdoption: adoption.slice(0, 15),
+    schoolStatusBreakdown: schoolsByMonth.map((s) => ({ status: s.status, count: s._count._all })),
+    monthlyLogins30d: monthlyLogins,
+    recommendations: [
+      trialConversionRate < 25 ? 'Trial conversion below 25% — review onboarding wizard completion rates.' : null,
+      churnRate > 10 ? 'Churn above 10% — prioritize success outreach for schools nearing renewal.' : null,
+      adoption.length && adoption[0].usage < 10 ? 'Low feature adoption — highlight AI and automation in admin comms.' : null,
+    ].filter(Boolean),
+  }
+}
+
 module.exports = {
   buildPlatformMetrics,
   buildBillingOverview,
   buildSchoolUsageReport,
+  buildSchoolSuccessMetrics,
   recordUsage,
   ensureAiCredits,
   consumeAiCredit,

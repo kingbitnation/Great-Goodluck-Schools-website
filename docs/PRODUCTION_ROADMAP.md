@@ -112,6 +112,22 @@ Super Admin: `admin@example.com` / `admin123` → **Platform Dashboard** at `/su
 | Admin UI brand colors | Partial | Shared `btn-admin` utilities added; some legacy `blue-*` classes may remain on older pages |
 | Redis rate limits | Done | Set `REDIS_URL` for distributed limits across instances |
 
+## Phase 4 — Enterprise platform (in progress)
+
+| Area | Status | Location |
+|------|--------|----------|
+| Master workflow blueprint | Done | `docs/PLATFORM_WORKFLOWS.md` |
+| Enterprise gap analysis | Done | `docs/ENTERPRISE_GAP_ANALYSIS.md` |
+| API keys & webhooks | Scaffold | `DeveloperApiKey`, `WebhookEndpoint`, `/admin/developer` |
+| Integration catalog | Scaffold | `IntegrationProvider`, `/admin/integrations` |
+| Workflow automation v1 | Scaffold | `WorkflowRule`, `workflowEngine.js`, `/admin/automation` |
+| Calendar hub | Done | `GET /api/calendar`, `/calendar`, iCal export |
+| Document vault | Done | `/admin/documents`, versions + expiry |
+| OAuth integrations | Done | Google, Zoom OAuth; Paystack key verify |
+| School success dashboard | Done | `/super-admin/success` |
+| Paystack payments | Done | Fees + SaaS; webhook; see [PAYMENTS.md](./PAYMENTS.md) |
+| Online payment gateways | Partial | Paystack live; Flutterwave/Stripe catalog only |
+
 ## Ongoing operations (manual)
 
 - Monthly backup restore test on staging

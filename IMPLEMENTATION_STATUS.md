@@ -25,6 +25,8 @@
 | Public website + CMS admin | ✓ |
 | DevOps (Docker, CI, monitoring, backups) | ✓ |
 | Testing (unit + penetration + integration) | ✓ |
+| Enterprise Phase 4 scaffold (workflows, API keys, integrations) | ✓ |
+| Calendar hub, document vault, OAuth, success metrics, Paystack | ✓ |
 | SchoolPilot brand palette & logo assets | ✓ |
 | Manual payment admin (shop, donations, SaaS) | ✓ |
 
@@ -47,6 +49,14 @@ npm run dev:frontend
 - Donation confirmations: `/admin/alumni-donations`
 - School bank & branding: `/admin/school-branding`
 - Website CMS: `/admin/website-cms`
+- Integrations marketplace: `/admin/integrations`
+- Workflow automation: `/admin/automation`
+- API & webhooks: `/admin/developer`
+- Platform developer overview: `/super-admin/developer`
+
+## Enterprise roadmap
+- **[docs/PLATFORM_WORKFLOWS.md](docs/PLATFORM_WORKFLOWS.md)** — full workflow blueprint (28 journeys)
+- **[docs/ENTERPRISE_GAP_ANALYSIS.md](docs/ENTERPRISE_GAP_ANALYSIS.md)** — honest completeness scores & build order
 
 ## Before production — your checklist
 See **[docs/USER_SETUP_CHECKLIST.md](docs/USER_SETUP_CHECKLIST.md)** for everything only you can provide (hosting, secrets, bank accounts, SMTP, logos, TLS, etc.).

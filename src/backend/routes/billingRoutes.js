@@ -192,6 +192,7 @@ function registerBillingRoutes(app, { prisma, requireRole, enqueueEmail, dispatc
         billingInterval,
         bankDetails: platformBankDetails({ amount, reference: payment.reference }),
         manual: true,
+        paystackAvailable: !!process.env.PAYSTACK_SECRET_KEY,
         discount: totalDiscount,
       })
     } catch (err) {
@@ -239,12 +240,6 @@ function registerBillingRoutes(app, { prisma, requireRole, enqueueEmail, dispatc
       console.error(err)
       res.status(500).json({ error: 'Server error' })
     }
-  })
-
-  app.post('/api/subscription/verify', schoolAdmin, async (_req, res) => {
-    res.status(400).json({
-      error: 'Online payment verification is disabled. Use bank transfer and submit proof for review.',
-    })
   })
 
   app.post('/api/schools/:id/subscription/cancel', schoolAdmin, async (req, res) => {
