@@ -1,46 +1,57 @@
+import Link from 'next/link'
 import { SectionLabel, SectionTitle } from './Brand'
 
 const STEPS = [
   {
     step: '01',
-    title: 'Register your school',
-    desc: 'Choose a plan, add your school details, and upload verification documents.',
-    color: 'bg-school-royal text-white',
+    title: 'Claim your school',
+    desc: 'Select your tier. Submit credentials. We verify — you get full access in minutes.',
+    border: 'border-school-royal/50',
+    text: 'text-school-royal',
   },
   {
     step: '02',
-    title: 'Onboard your team',
-    desc: 'Import classes, invite teachers, and give parents and students portal access.',
-    color: 'bg-school-gold text-school-navy',
+    title: 'Deploy your team',
+    desc: 'Import classes, assign roles, open portals for staff, parents, and students.',
+    border: 'border-school-gold/50',
+    text: 'text-school-gold',
   },
   {
     step: '03',
-    title: 'Run term operations',
-    desc: 'Collect fees, run CBT, publish results, and manage payroll from one dashboard.',
-    color: 'bg-school-green text-white',
+    title: 'Run the term',
+    desc: 'Fees, CBT, results, payroll — one command centre. No duct tape required.',
+    border: 'border-school-green/50',
+    text: 'text-school-green',
   },
 ]
 
 export default function HowItWorks() {
   return (
-    <section className="section-pad border-y-4 border-school-royal/20 bg-school-navy text-white">
-      <div className="container-school">
-        <div className="max-w-xl">
-          <SectionLabel light>How it works</SectionLabel>
-          <SectionTitle light className="mt-4">Go live in days, not months</SectionTitle>
+    <section className="exclusive-scene relative overflow-hidden py-20 sm:py-28">
+      <div className="pointer-events-none absolute inset-0 bg-noise opacity-25" />
+      <div className="container-school relative">
+        <div className="flex flex-col items-start justify-between gap-6 lg:flex-row lg:items-end">
+          <div className="max-w-xl">
+            <SectionLabel light>Onboarding</SectionLabel>
+            <SectionTitle light className="mt-4">
+              Live in days.{' '}
+              <span className="font-serif italic text-school-gold">Not quarters.</span>
+            </SectionTitle>
+          </div>
+          <Link href="/register-school" className="btn-exclusive shrink-0">
+            Start now
+          </Link>
         </div>
 
-        <ol className="mt-10 grid gap-6 md:grid-cols-3">
+        <ol className="mt-14 grid gap-6 md:grid-cols-3">
           {STEPS.map((s) => (
             <li
               key={s.step}
-              className="card-energy rounded-card border border-white/10 bg-white/5 p-6 backdrop-blur-sm"
+              className={`card-luxury rounded-2xl border bg-white/[0.04] p-7 backdrop-blur-md ${s.border}`}
             >
-              <span className={`inline-flex h-10 w-10 items-center justify-center rounded-xl font-display text-sm font-bold ${s.color}`}>
-                {s.step}
-              </span>
-              <h3 className="mt-4 font-display text-lg font-bold">{s.title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-slate-300">{s.desc}</p>
+              <span className={`font-display text-4xl font-black ${s.text}`}>{s.step}</span>
+              <h3 className="mt-4 font-display text-xl font-bold text-white">{s.title}</h3>
+              <p className="mt-3 text-sm leading-relaxed text-slate-400">{s.desc}</p>
             </li>
           ))}
         </ol>

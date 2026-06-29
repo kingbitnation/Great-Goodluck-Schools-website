@@ -7,6 +7,7 @@ import StatsSection from '../components/public/StatsSection'
 import ContentCard from '../components/public/ContentCard'
 import PrincipalMessage from '../components/public/PrincipalMessage'
 import Reveal from '../components/public/Reveal'
+import SignatureStrip from '../components/public/SignatureStrip'
 import PlatformFeatures from '../components/public/PlatformFeatures'
 import SchoolProof from '../components/public/SchoolProof'
 import HowItWorks from '../components/public/HowItWorks'
@@ -96,6 +97,7 @@ export default function Home() {
       <PublicLayout title="" subtitle="" noHero fullWidth>
         <Hero />
         <StatsSection stats={home?.stats} />
+        <SignatureStrip />
         <SchoolProof />
         <PlatformFeatures />
 
@@ -213,21 +215,23 @@ export default function Home() {
         <section className="section-pad">
           <div className="container-school">
             <Reveal>
-              <div className="relative overflow-hidden rounded-3xl bg-school-navy p-8 text-center sm:p-14">
-                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(245,158,11,0.2),transparent_50%)]" />
+              <div className="exclusive-scene relative overflow-hidden rounded-3xl border border-white/10 p-8 text-center shadow-luxury sm:p-14">
+                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_70%_20%,rgba(245,158,11,0.15),transparent_55%)]" />
+                <div className="pointer-events-none absolute inset-0 bg-noise opacity-20" />
                 <div className="relative">
-                  <SectionTitle light className="text-balance">
+                  <p className="font-serif text-lg italic text-school-gold">Your move.</p>
+                  <SectionTitle light className="mt-3 text-balance">
                     Ready to run {home?.school?.name || 'your school'} on SchoolPilot?
                   </SectionTitle>
-                  <p className="mx-auto mt-4 max-w-xl text-slate-300">
-                    Start your 14-day free trial. No credit card required.
+                  <p className="mx-auto mt-4 max-w-xl text-slate-400">
+                    14-day trial. Full access. No card. Built by King Bit for schools that demand more.
                   </p>
                   <div className="mt-8 flex flex-wrap justify-center gap-4">
-                    <Link href="/register-school" className="btn-gold shadow-glow">
-                      Get started free
+                    <Link href="/register-school" className="btn-exclusive">
+                      Claim your trial
                     </Link>
-                    <Link href="/contact" className="btn-outline">
-                      Book a demo
+                    <Link href="/contact" className="btn-ghost-light">
+                      Book a private demo
                     </Link>
                   </div>
                 </div>

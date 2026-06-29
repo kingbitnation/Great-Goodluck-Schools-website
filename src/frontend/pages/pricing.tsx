@@ -45,13 +45,13 @@ export default function PricingPage() {
         path="/pricing"
       />
       <PublicLayout title="" subtitle="" noHero fullWidth>
-        <section className="relative -mt-[72px] overflow-hidden bg-school-navy pt-[72px] text-white">
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(37,99,235,0.4),transparent)]" />
-          <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-school-royal via-school-gold to-school-green" />
+        <section className="exclusive-scene relative -mt-[72px] overflow-hidden pt-[72px] text-white">
+          <div className="pointer-events-none absolute inset-0 bg-noise opacity-20" />
+          <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-school-gold/60 to-transparent" />
           <div className="container-school relative py-14 text-center sm:py-20">
-            <SectionLabel light>Plans & Pricing</SectionLabel>
-            <SectionTitle light className="mt-4 text-balance">
-              Straightforward plans in Naira
+            <div className="badge-exclusive mx-auto">Investment tiers</div>
+            <SectionTitle light className="mt-6 text-balance">
+              <span className="font-serif italic text-school-gold">Exclusive</span> pricing in Naira
             </SectionTitle>
             <p className="mx-auto mt-4 max-w-2xl text-slate-300">
               Pick a plan that fits your school size. Every plan includes a 14-day trial with full access.

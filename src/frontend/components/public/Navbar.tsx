@@ -81,7 +81,7 @@ export default function Navbar({ overlay = false }: NavbarProps) {
           <ThemeToggle className="hidden sm:inline-flex" />
           <Link
             href="/register-school"
-            className="btn-gold hidden rounded-pill px-5 py-2.5 text-sm font-semibold sm:inline-flex"
+            className="btn-exclusive hidden px-5 py-2.5 text-xs sm:inline-flex"
           >
             Register School
           </Link>

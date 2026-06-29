@@ -101,14 +101,14 @@ export default function Login() {
   }
 
   return (
-    <div className="relative flex min-h-screen overflow-x-hidden bg-school-navy">
+    <div className="exclusive-scene relative flex min-h-screen overflow-x-hidden">
       <Seo title="Portal Login" description="Sign in to your SchoolPilot school portal." path="/login" noIndex />
       <SkipLink href="#login-form" />
 
       <div className="pointer-events-none absolute inset-0">
-        <div className="animate-blob absolute -left-32 top-0 h-96 w-96 rounded-full bg-school-royal/25 blur-3xl" />
-        <div className="animate-blob animation-delay-2000 absolute right-0 top-1/3 h-80 w-80 rounded-full bg-school-gold/15 blur-3xl" />
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:64px_64px]" />
+        <div className="animate-orb absolute -left-32 top-0 h-96 w-96 rounded-full bg-school-royal/25 blur-[100px]" />
+        <div className="animate-orb animation-delay-2000 absolute right-0 top-1/3 h-80 w-80 rounded-full bg-school-gold/15 blur-[90px]" />
+        <div className="absolute inset-0 bg-noise opacity-25" />
       </div>
 
       <div className="absolute right-4 top-4 z-20">
@@ -122,17 +122,10 @@ export default function Login() {
           </Link>
 
           <div className="animate-fade-up max-w-lg">
-            <div className="inline-flex items-center gap-2 rounded-pill border border-white/15 bg-white/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-school-gold backdrop-blur-sm">
-              <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-school-green opacity-75" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-school-green" />
-              </span>
-              School portal
-            </div>
-
-            <h1 className="font-display mt-6 text-4xl font-extrabold leading-tight tracking-tight text-white xl:text-5xl">
+            <div className="badge-exclusive mb-6">Members only</div>
+            <h1 className="font-display text-4xl font-extrabold leading-tight text-white xl:text-5xl">
               Welcome back to{' '}
-              <span className="text-gradient-hero">SchoolPilot</span>
+              <span className="text-shimmer">SchoolPilot</span>
             </h1>
             <p className="mt-4 text-base leading-relaxed text-slate-300">
               Sign in to manage academics, fees, attendance, and communication — all from one secure dashboard.
@@ -168,7 +161,7 @@ export default function Login() {
             <form
               id="login-form"
               onSubmit={tempToken ? handle2FA : handleSubmit}
-              className="glass-card rounded-3xl border border-white/10 bg-white/95 p-8 shadow-royal backdrop-blur-xl dark:bg-school-surface/95 sm:p-10"
+              className="card-luxury rounded-3xl border border-white/10 bg-white/[0.04] p-8 shadow-luxury backdrop-blur-xl sm:p-10"
               aria-labelledby="login-heading"
             >
               <div className="mx-auto mb-6 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-school-royal to-blue-600 text-white shadow-soft">
@@ -226,7 +219,7 @@ export default function Login() {
                     {error}
                   </p>
                 )}
-                <button type="submit" disabled={loading} className="btn-gold w-full shadow-glow" aria-busy={loading}>
+                <button type="submit" disabled={loading} className="btn-exclusive w-full" aria-busy={loading}>
                   {loading ? 'Please wait...' : tempToken ? 'Verify' : 'Sign in'}
                 </button>
                 {tempToken && (

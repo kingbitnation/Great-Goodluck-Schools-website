@@ -4,56 +4,59 @@ import { SectionLabel, SectionTitle } from './Brand'
 const CATEGORIES = [
   {
     title: 'Academics',
-    accent: 'border-school-royal bg-school-royal/5',
-    dot: 'bg-school-royal',
+    accent: 'text-school-royal',
+    line: 'from-school-royal to-blue-400',
     items: ['Results & broadsheets', 'CBT exams', 'LMS & video lessons', 'Assignments', 'Timetable', 'Live classes', 'Certificates & QR verify'],
   },
   {
     title: 'Finance',
-    accent: 'border-school-gold bg-school-gold/5',
-    dot: 'bg-school-gold',
+    accent: 'text-school-gold',
+    line: 'from-school-gold to-amber-300',
     items: ['Fee management', 'Online payments', 'Manual payment verify', 'Receipts', 'Fee adjustments', 'Revenue analytics'],
   },
   {
     title: 'People',
-    accent: 'border-school-green bg-school-green/5',
-    dot: 'bg-school-green',
+    accent: 'text-school-green',
+    line: 'from-school-green to-emerald-300',
     items: ['Student portal', 'Parent portal', 'Teacher portal', 'Attendance', 'ID cards', 'Admissions CRM', 'Alumni network'],
   },
   {
     title: 'Operations',
-    accent: 'border-violet-500 bg-violet-500/5',
-    dot: 'bg-violet-500',
+    accent: 'text-violet-400',
+    line: 'from-violet-500 to-purple-300',
     items: ['Library', 'Hostel', 'Transport & GPS', 'Biometrics', 'School shop', 'Internal messaging'],
   },
   {
     title: 'HR & Payroll',
-    accent: 'border-orange-500 bg-orange-500/5',
-    dot: 'bg-orange-500',
+    accent: 'text-orange-400',
+    line: 'from-orange-500 to-amber-400',
     items: ['HR dashboard', 'Job postings', 'Leave management', 'Payroll runs', 'Payslips', 'Salary grades'],
   },
   {
     title: 'AI & Intelligence',
-    accent: 'border-cyan-500 bg-cyan-500/5',
-    dot: 'bg-cyan-500',
+    accent: 'text-cyan-400',
+    line: 'from-cyan-400 to-blue-300',
     items: ['AI tutor', 'AI exam generator', 'AI marking', 'AI lesson plans', 'Parent AI summaries', 'Usage & credits'],
   },
 ]
 
 export default function PlatformFeatures() {
   return (
-    <section className="energy-band section-pad">
+    <section className="section-pad bg-school-bg">
       <div className="container-school">
-        <div className="flex flex-col items-start justify-between gap-6 lg:flex-row lg:items-end">
+        <div className="flex flex-col items-start justify-between gap-6 border-b border-school-border/60 pb-10 lg:flex-row lg:items-end">
           <div className="max-w-2xl">
-            <SectionLabel>Full platform</SectionLabel>
-            <SectionTitle className="mt-4">Everything your school runs on — in one place</SectionTitle>
+            <SectionLabel>Full arsenal</SectionLabel>
+            <SectionTitle className="mt-4">
+              Every module.{' '}
+              <span className="font-serif italic text-school-royal">One throne.</span>
+            </SectionTitle>
             <p className="mt-4 text-school-muted">
-              40+ capabilities across academics, finance, operations, and AI. No bolt-ons. No juggling five different tools.
+              40+ capabilities — no Frankenstein integrations. This is the complete operating system.
             </p>
           </div>
-          <Link href="/pricing" className="btn-royal shrink-0">
-            See plans & pricing
+          <Link href="/pricing" className="btn-exclusive-dark shrink-0">
+            Unlock pricing
           </Link>
         </div>
 
@@ -61,20 +64,14 @@ export default function PlatformFeatures() {
           {CATEGORIES.map((cat) => (
             <article
               key={cat.title}
-              className={`card-energy rounded-card border-l-4 ${cat.accent} p-6`}
+              className="card-luxury-light group rounded-2xl border border-school-border/80 bg-school-surface p-6 shadow-soft"
             >
-              <div className="flex items-center gap-2">
-                <span className={`h-2.5 w-2.5 rounded-full ${cat.dot}`} />
-                <h3 className="font-display text-lg font-bold text-school-navy dark:text-school-text">
-                  {cat.title}
-                </h3>
-              </div>
-              <ul className="mt-4 space-y-2">
+              <div className={`mb-4 h-0.5 w-12 bg-gradient-to-r ${cat.line}`} />
+              <h3 className={`font-display text-lg font-bold ${cat.accent}`}>{cat.title}</h3>
+              <ul className="mt-4 space-y-2.5">
                 {cat.items.map((item) => (
-                  <li key={item} className="flex items-start gap-2 text-sm text-school-muted">
-                    <svg className="mt-0.5 h-4 w-4 shrink-0 text-school-green" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                    </svg>
+                  <li key={item} className="flex items-start gap-2.5 text-sm text-school-muted">
+                    <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-school-gold" />
                     {item}
                   </li>
                 ))}

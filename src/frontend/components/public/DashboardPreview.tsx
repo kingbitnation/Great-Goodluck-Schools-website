@@ -11,7 +11,7 @@ export default function DashboardPreview({ className = '' }: { className?: strin
         <p className="font-display text-lg font-bold text-school-navy">₦2.4M</p>
       </div>
 
-      <div className="relative overflow-hidden rounded-3xl border border-white/20 bg-white/95 shadow-royal backdrop-blur-xl dark:bg-school-surface/95">
+      <div className="relative overflow-hidden rounded-3xl border border-white/15 bg-white/[0.03] shadow-luxury backdrop-blur-xl dark:bg-school-surface/95">
         <div className="flex items-center gap-2 border-b border-school-border/60 bg-school-bg/80 px-4 py-3">
           <span className="h-2.5 w-2.5 rounded-full bg-red-400" />
           <span className="h-2.5 w-2.5 rounded-full bg-amber-400" />

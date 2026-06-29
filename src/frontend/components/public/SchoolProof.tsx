@@ -2,50 +2,47 @@ import { SectionLabel, SectionTitle } from './Brand'
 
 const PILLARS = [
   {
-    title: 'Fees that actually get paid',
-    desc: 'Online payments, receipts, reminders, and bursar dashboards — parents see what they owe without calling the office.',
-    accent: 'border-school-gold',
-    num: '01',
+    title: 'Fees that command respect',
+    desc: 'Parents pay online. Bursars reconcile in real time. Receipts land instantly. No more chasing cash at the gate.',
+    accent: 'from-school-gold/80 to-amber-600/40',
   },
   {
-    title: 'Results without the chaos',
-    desc: 'Broadsheet generation, portal publishing, and parent access on release day. No more printing and re-printing.',
-    accent: 'border-school-royal',
-    num: '02',
+    title: 'Results on your terms',
+    desc: 'Broadsheet to portal in one flow. Release day becomes a moment — not a meltdown of phone calls and print runs.',
+    accent: 'from-school-royal/80 to-blue-600/40',
   },
   {
-    title: 'Staff tools teachers will use',
-    desc: 'Attendance, grading, CBT, lesson plans, and messaging in one place — not another app they ignore after week one.',
-    accent: 'border-school-green',
-    num: '03',
+    title: 'Tools teachers actually trust',
+    desc: 'Attendance, CBT, grading, and AI marking in one cockpit. Built for the pace of a real Nigerian school day.',
+    accent: 'from-school-green/80 to-emerald-600/40',
   },
 ]
 
 export default function SchoolProof() {
   return (
-    <section className="section-pad bg-school-surface">
-      <div className="container-school">
+    <section className="section-pad exclusive-dark relative overflow-hidden">
+      <div className="pointer-events-none absolute inset-0 bg-noise opacity-20" />
+      <div className="container-school relative">
         <div className="max-w-2xl">
-          <SectionLabel>Why schools switch</SectionLabel>
-          <SectionTitle className="mt-4">Less admin noise. More time for learning.</SectionTitle>
-          <p className="mt-4 text-school-muted">
-            SchoolPilot is built around the real pain points proprietors deal with every term.
-          </p>
+          <SectionLabel light>The standard</SectionLabel>
+          <SectionTitle light className="mt-4">
+            Built different.{' '}
+            <span className="font-serif font-normal italic text-school-gold">On purpose.</span>
+          </SectionTitle>
         </div>
 
-        <div className="mt-10 grid gap-5 lg:grid-cols-3">
-          {PILLARS.map((item) => (
+        <div className="mt-12 grid gap-6 lg:grid-cols-3">
+          {PILLARS.map((item, i) => (
             <article
               key={item.title}
-              className={`card-energy rounded-card border border-school-border/70 border-t-4 ${item.accent} bg-school-bg p-6 sm:p-7`}
+              className="card-luxury group relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] p-7 backdrop-blur-sm"
             >
-              <span className="font-display text-5xl font-black leading-none text-school-navy/10 dark:text-white/10">
-                {item.num}
+              <div className={`absolute inset-x-0 top-0 h-px bg-gradient-to-r ${item.accent}`} />
+              <span className="font-display text-5xl font-black text-white/[0.06]">
+                {String(i + 1).padStart(2, '0')}
               </span>
-              <h3 className="mt-3 font-display text-lg font-bold text-school-navy dark:text-school-text">
-                {item.title}
-              </h3>
-              <p className="mt-2 text-sm leading-relaxed text-school-muted">{item.desc}</p>
+              <h3 className="mt-4 font-display text-xl font-bold text-white">{item.title}</h3>
+              <p className="mt-3 text-sm leading-relaxed text-slate-400">{item.desc}</p>
             </article>
           ))}
         </div>
