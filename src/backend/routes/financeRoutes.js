@@ -344,6 +344,8 @@ function registerFinanceRoutes(app, { prisma, requireRole, requirePermission, en
         const approvedAmount = paidAmount != null ? Number(paidAmount) : payment.amount
         const updated = await completePayment(prisma, payment, approvedAmount)
         await logVerification(prisma, { paymentId: payment.id, action: 'approved', note, performedById: req.user.userId })
+        const { onPaymentApproved } = require('../lib/workflowEngine')
+        await onPaymentApproved(prisma, updated).catch((err) => console.error('Workflow error:', err.message))
         if (enqueueEmail) {
           await dispatchNotification(prisma, {
             userId: payment.student.user.id,

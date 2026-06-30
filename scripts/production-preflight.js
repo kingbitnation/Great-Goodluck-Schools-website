@@ -66,13 +66,21 @@ if (env.TERMII_API_KEY && env.TERMII_SENDER_ID) {
   warn('Termii SMS', 'Set TERMII_API_KEY and TERMII_SENDER_ID for SMS')
 }
 
-if (env.OPENAI_API_KEY) ok.push({ label: 'OpenAI', detail: env.AI_MODEL || 'gpt-4o-mini' })
-else warn('OpenAI', 'AI runs in demo mode without OPENAI_API_KEY')
+if (env.OPENROUTER_API_KEY) ok.push({ label: 'OpenRouter AI', detail: env.AI_MODEL || env.OPENROUTER_MODEL || 'openai/gpt-4o' })
+else if (env.OPENAI_API_KEY) ok.push({ label: 'OpenAI AI', detail: env.AI_MODEL || 'gpt-4o-mini' })
+else warn('AI', 'AI runs in demo mode without OPENROUTER_API_KEY or OPENAI_API_KEY')
+
+if (env.PAYSTACK_SECRET_KEY) ok.push({ label: 'Paystack', detail: 'Platform SaaS + fee fallback configured' })
+else warn('Paystack', 'Set PAYSTACK_SECRET_KEY for online SaaS/fee payments')
+
+if (env.FLUTTERWAVE_SECRET_KEY) ok.push({ label: 'Flutterwave', detail: 'Platform fallback configured' })
+else warn('Flutterwave', 'Set FLUTTERWAVE_SECRET_KEY for multi-currency payments')
 
 const optional = [
   ['REDIS_URL', 'Redis rate limits'],
   ['CLOUDINARY_CLOUD_NAME', 'Cloudinary uploads'],
-  ['OPENAI_API_KEY', 'Live AI'],
+  ["OPENROUTER_API_KEY", "Live AI via OpenRouter"],
+  ["OPENAI_API_KEY", "Live AI via OpenAI"],
   ['TERMII_API_KEY', 'SMS via Termii'],
   ['VAPID_PUBLIC_KEY', 'Web push'],
 ]
@@ -92,4 +100,4 @@ if (errors.length) {
   console.error('\nFix errors before deploying to production.')
   process.exit(1)
 }
-console.log('\nPreflight passed. Deploy with: npm run deploy:prod\n')
+console.log('\nPreflight passed. Deploy: docs/LAUNCH_VERCEL_RAILWAY.md (cloud) or npm run deploy:prod (Docker)\n')

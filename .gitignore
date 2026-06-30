@@ -57,3 +57,6 @@ backups/*
 
 # Local uploads (use Cloudinary in production)
 uploads/
+
+.vercel
+.env*

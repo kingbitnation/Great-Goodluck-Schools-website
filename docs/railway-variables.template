@@ -1,0 +1,54 @@
+# Paste these in Railway → your service → Variables
+# Or run: npm run railway:sync-env (after railway login)
+
+NODE_ENV=production
+TRUST_PROXY=true
+PORT=4000
+SKIP_DB_PUSH=true
+RUN_SEED=false
+
+# Required — copy values from your local .env
+DATABASE_URL=
+JWT_SECRET=
+REFRESH_SECRET=
+APP_URL=
+API_PUBLIC_URL=
+
+# Email
+SMTP_HOST=
+SMTP_PORT=
+SMTP_SECURE=
+SMTP_USER=
+SMTP_PASS=
+SMTP_FROM=
+
+# Cloudinary
+CLOUDINARY_CLOUD_NAME=
+CLOUDINARY_API_KEY=
+CLOUDINARY_API_SECRET=
+
+# SMS
+SMS_PROVIDER=termii
+TERMII_API_KEY=
+TERMII_BASE_URL=
+TERMII_SENDER_ID=
+
+# AI
+OPENROUTER_API_KEY=
+OPENROUTER_MODEL=openai/gpt-4o
+AI_MODEL=openai/gpt-4o
+AI_MAX_TOKENS=2048
+
+# Payments (test keys OK for staging)
+FLUTTERWAVE_SECRET_KEY=
+FLUTTERWAVE_PUBLIC_KEY=
+FLUTTERWAVE_SECRET_HASH=
+
+# Platform bank (SaaS subscriptions)
+PLATFORM_BANK_NAME=
+PLATFORM_BANK_ACCOUNT_NAME=
+PLATFORM_BANK_ACCOUNT_NUMBER=
+
+# Do NOT set on Railway (frontend/Vercel only):
+# NEXT_PUBLIC_API_BASE_URL
+# NEXT_PUBLIC_PLATFORM_BANK_*

@@ -223,14 +223,14 @@ function SchoolBillingPage({ user }: { user: AuthUser }) {
         </section>
 
         {manualPayment && (
-          <div className="content-card border-amber-200 bg-amber-50 p-6">
-            <h3 className="font-bold text-school-navy">Manual Bank Transfer</h3>
+          <div className="content-card border-amber-200 bg-amber-50 p-6 dark:border-amber-800 dark:bg-amber-950/40">
+            <h3 className="font-bold text-slate-900 dark:text-white">Manual Bank Transfer</h3>
             <dl className="mt-4 grid gap-2 text-sm sm:grid-cols-2">
-              <div><dt className="text-slate-500">Bank</dt><dd className="font-medium">{manualPayment.bankDetails.bankName}</dd></div>
-              <div><dt className="text-slate-500">Account Name</dt><dd className="font-medium">{manualPayment.bankDetails.accountName}</dd></div>
-              <div><dt className="text-slate-500">Account Number</dt><dd className="font-mono font-medium">{manualPayment.bankDetails.accountNumber}</dd></div>
-              <div><dt className="text-slate-500">Amount</dt><dd className="font-bold">₦{manualPayment.amount.toLocaleString()}</dd></div>
-              <div className="sm:col-span-2"><dt className="text-slate-500">Reference</dt><dd className="font-mono font-bold text-school-royal">{manualPayment.reference}</dd></div>
+              <div><dt className="text-slate-500 dark:text-slate-400">Bank</dt><dd className="font-medium text-slate-900 dark:text-white">{manualPayment.bankDetails.bankName}</dd></div>
+              <div><dt className="text-slate-500 dark:text-slate-400">Account Name</dt><dd className="font-medium text-slate-900 dark:text-white">{manualPayment.bankDetails.accountName}</dd></div>
+              <div><dt className="text-slate-500 dark:text-slate-400">Account Number</dt><dd className="font-mono font-medium text-slate-900 dark:text-white">{manualPayment.bankDetails.accountNumber}</dd></div>
+              <div><dt className="text-slate-500 dark:text-slate-400">Amount</dt><dd className="font-bold text-slate-900 dark:text-white">₦{manualPayment.amount.toLocaleString()}</dd></div>
+              <div className="sm:col-span-2"><dt className="text-slate-500 dark:text-slate-400">Reference</dt><dd className="font-mono font-bold text-school-royal">{manualPayment.reference}</dd></div>
             </dl>
             <div className="mt-4">
               <PaymentReceiptUpload

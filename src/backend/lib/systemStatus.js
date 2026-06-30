@@ -12,7 +12,9 @@ async function buildSystemStatus(prisma, schoolId) {
       : Promise.resolve(null),
   ])
 
+  const openRouterConfigured = Boolean(process.env.OPENROUTER_API_KEY)
   const openAiConfigured = Boolean(process.env.OPENAI_API_KEY)
+  const aiConfigured = openRouterConfigured || openAiConfigured
   const cloudinaryConfigured = Boolean(
     process.env.CLOUDINARY_CLOUD_NAME &&
       process.env.CLOUDINARY_API_KEY &&
@@ -48,14 +50,16 @@ async function buildSystemStatus(prisma, schoolId) {
         required: true,
       },
       {
-        id: 'openai',
-        label: 'AI features (OpenAI)',
-        state: openAiConfigured ? 'ready' : 'demo',
-        detail: openAiConfigured
-          ? `Model: ${process.env.AI_MODEL || 'gpt-4o-mini'}`
-          : 'Demo mode — add OPENAI_API_KEY to .env for live AI tutor & lesson plans',
+        id: 'openrouter',
+        label: 'AI features (OpenRouter)',
+        state: aiConfigured ? 'ready' : 'demo',
+        detail: openRouterConfigured
+          ? `OpenRouter — model: ${process.env.AI_MODEL || process.env.OPENROUTER_MODEL || 'openai/gpt-4o-mini'}`
+          : openAiConfigured
+            ? `OpenAI fallback — model: ${process.env.AI_MODEL || 'gpt-4o-mini'}`
+            : 'Demo mode — add OPENROUTER_API_KEY to .env for live AI tutor & lesson plans',
         href: null,
-        envKey: 'OPENAI_API_KEY',
+        envKey: 'OPENROUTER_API_KEY',
         required: false,
       },
       {

@@ -53,7 +53,7 @@ function registerAiRoutes(app, { prisma, requireRole }) {
       const limits = mergeLimits(sub?.plan)
       if (!limits.ai && (limits.aiCredits || 0) <= 0) return next()
       await ensureAiCredits(prisma, schoolId, sub)
-      if (process.env.OPENAI_API_KEY) {
+      if (process.env.OPENROUTER_API_KEY || process.env.OPENAI_API_KEY) {
         const result = await consumeAiCredit(prisma, schoolId, sub, 1)
         if (!result.ok) {
           return res.status(403).json({
@@ -83,8 +83,12 @@ function registerAiRoutes(app, { prisma, requireRole }) {
     }
     res.json({
       enabled,
-      provider: process.env.OPENAI_API_KEY ? 'openai' : 'demo',
-      model: process.env.AI_MODEL || 'gpt-4o-mini',
+      provider: process.env.OPENROUTER_API_KEY
+        ? 'openrouter'
+        : process.env.OPENAI_API_KEY
+          ? 'openai'
+          : 'demo',
+      model: process.env.AI_MODEL || process.env.OPENROUTER_MODEL || 'openai/gpt-4o-mini',
       plan: req.subscription?.plan?.slug || null,
       credits: credits
         ? { balance: credits.balance, monthlyGrant: credits.monthlyGrant, usedThisMonth: credits.usedThisMonth }

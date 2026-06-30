@@ -11,6 +11,7 @@ import { apiBaseUrl, parseJsonResponse } from '../lib/apiBase'
 import { fetchSubscriptionPlans } from '../lib/fetchPlans'
 import { passwordMeetsRules, passwordsMatch } from '../lib/passwordRules'
 import PasswordRulesList from '../components/ui/PasswordRulesList'
+import { generateRegistrationReference, platformBankFromEnv } from '../lib/platformPayment'
 
 type Step = 'plan' | 'payment' | 'documents' | 'details'
 
@@ -125,9 +126,9 @@ export default function RegisterSchool() {
     setError('')
     try {
       const res = await fetch(
-        `${apiBaseUrl()}/api/public/schools/register/quote?planSlug=${encodeURIComponent(planSlug)}&interval=${billingInterval}`
+        `${apiBaseUrl()}/api/public/schools/register/quote?planSlug=${encodeURIComponent(planSlug)}&interval=${billingInterval}`,
       )
-      const body = await res.json()
+      const body = await parseJsonResponse<Quote & { error?: string; contactSales?: boolean }>(res)
       if (!res.ok) throw new Error(body.error || 'Could not load payment details')
       if (body.contactSales) {
         setError('Ultimate plan requires sales contact — choose another plan or contact us.')
@@ -137,11 +138,41 @@ export default function RegisterSchool() {
       setQuote(body)
       setForm((f) => (f.paymentReference ? f : { ...f, paymentReference: body.reference }))
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Quote failed')
+      const plan = plans.find((p) => p.slug === planSlug)
+      const amount = priceForPlan(plan, billingInterval)
+      if (plan && amount != null) {
+        const reference = generateRegistrationReference()
+        const bank = platformBankFromEnv()
+        setQuote({
+          plan: {
+            id: plan.id,
+            name: plan.name,
+            slug: plan.slug,
+            maxStudents: plan.maxStudents,
+            trialDays: 14,
+            planFeatures: plan.planFeatures,
+          },
+          billingInterval,
+          amount,
+          currency: 'NGN',
+          reference,
+          bankDetails: { ...bank, amount, reference },
+        })
+        setForm((f) => (f.paymentReference ? f : { ...f, paymentReference: reference }))
+        const msg = err instanceof Error ? err.message : 'Quote failed'
+        setError(
+          msg === 'Server error'
+            ? 'Payment service was temporarily unavailable. Bank details below are correct — transfer, then continue.'
+            : 'Showing offline payment details. Click Retry if the amount looks wrong.',
+        )
+      } else {
+        setQuote(null)
+        setError(err instanceof Error ? err.message : 'Could not load payment details')
+      }
     } finally {
       setLoadingQuote(false)
     }
-  }, [])
+  }, [plans])
 
   useEffect(() => {
     if (step === 'payment' && form.proposedPlanSlug) {
@@ -221,9 +252,17 @@ export default function RegisterSchool() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone: form.adminPhone }),
       })
-      const body = await parseJsonResponse<{ error?: string; message?: string; devCode?: string }>(res)
+      const body = await parseJsonResponse<{ error?: string; message?: string; devCode?: string; smsHint?: string }>(res)
       if (!res.ok) throw new Error(body.error || 'Could not send code')
-      setPhoneDevHint(body.devCode ? `Dev code: ${body.devCode}` : (body.message || 'Code sent'))
+      if (body.devCode) {
+        setPhoneDevHint(
+          body.smsHint
+            ? `${body.message} Code: ${body.devCode} (${body.smsHint})`
+            : `Your verification code: ${body.devCode}`,
+        )
+      } else {
+        setPhoneDevHint(body.message || 'Code sent — check your phone')
+      }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Could not send code')
     } finally {
@@ -473,25 +512,30 @@ export default function RegisterSchool() {
                     <p className="text-slate-500">Loading payment details…</p>
                   ) : quote ? (
                     <>
-                      <div className="rounded-xl border border-school-border bg-slate-50 p-5 text-sm">
-                        <p className="font-semibold text-school-navy">
+                      {error && (
+                        <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                          {error}
+                        </p>
+                      )}
+                      <div className="rounded-xl border border-slate-200 bg-white p-5 text-sm text-slate-900 shadow-sm dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100">
+                        <p className="font-semibold text-slate-900 dark:text-white">
                           {quote.plan.name} — ₦{quote.amount.toLocaleString()} / {interval}
                         </p>
                         <dl className="mt-4 space-y-2">
                           <div className="flex justify-between gap-4">
-                            <dt className="text-slate-500">Bank</dt>
-                            <dd className="font-medium">{quote.bankDetails.bankName}</dd>
+                            <dt className="text-slate-500 dark:text-slate-400">Bank</dt>
+                            <dd className="font-medium text-slate-900 dark:text-white">{quote.bankDetails.bankName}</dd>
                           </div>
                           <div className="flex justify-between gap-4">
-                            <dt className="text-slate-500">Account name</dt>
-                            <dd className="font-medium">{quote.bankDetails.accountName}</dd>
+                            <dt className="text-slate-500 dark:text-slate-400">Account name</dt>
+                            <dd className="font-medium text-slate-900 dark:text-white">{quote.bankDetails.accountName}</dd>
                           </div>
                           <div className="flex justify-between gap-4">
-                            <dt className="text-slate-500">Account number</dt>
-                            <dd className="font-mono font-bold">{quote.bankDetails.accountNumber}</dd>
+                            <dt className="text-slate-500 dark:text-slate-400">Account number</dt>
+                            <dd className="font-mono font-bold text-slate-900 dark:text-white">{quote.bankDetails.accountNumber}</dd>
                           </div>
                           <div className="flex justify-between gap-4">
-                            <dt className="text-slate-500">Amount</dt>
+                            <dt className="text-slate-500 dark:text-slate-400">Amount</dt>
                             <dd className="font-bold text-school-royal">₦{quote.amount.toLocaleString()}</dd>
                           </div>
                         </dl>
@@ -539,7 +583,18 @@ export default function RegisterSchool() {
                       </p>
                     </>
                   ) : (
-                    <p className="text-red-600">Could not load payment details. Go back and select a plan.</p>
+                    <div className="space-y-3">
+                      <p className="text-red-600">
+                        {error || 'Could not load payment details. Go back and select a plan.'}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => loadQuote(form.proposedPlanSlug, interval)}
+                        className="btn-royal text-sm py-2 px-4"
+                      >
+                        Retry loading payment details
+                      </button>
+                    </div>
                   )}
                 </div>
               )}
@@ -687,7 +742,13 @@ export default function RegisterSchool() {
                         {verifyingCode ? 'Checking…' : 'Verify'}
                       </button>
                     </div>
-                    {phoneDevHint && <p className={`text-xs ${phoneVerified ? 'text-school-green' : 'text-school-muted'}`}>{phoneDevHint}</p>}
+                    {phoneDevHint && (
+                      <p
+                        className={`text-sm ${phoneVerified ? 'text-school-green' : phoneDevHint.includes('verification code:') ? 'font-semibold text-school-navy' : 'text-school-muted'}`}
+                      >
+                        {phoneDevHint}
+                      </p>
+                    )}
                   </div>
                   <input
                     type="password"

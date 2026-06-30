@@ -1,18 +1,54 @@
 async function completeChat({ systemPrompt, messages, jsonMode = false, temperature = 0.7 }) {
-  const apiKey = process.env.OPENAI_API_KEY
-  const model = process.env.AI_MODEL || 'gpt-4o-mini'
+  const openRouterKey = process.env.OPENROUTER_API_KEY
+  const openAiKey = process.env.OPENAI_API_KEY
+  const model = process.env.AI_MODEL || process.env.OPENROUTER_MODEL || 'openai/gpt-4o-mini'
+  const maxTokens = Number(process.env.AI_MAX_TOKENS || 2048)
 
-  if (apiKey) {
+  const apiMessages = [{ role: 'system', content: systemPrompt }, ...messages]
+
+  if (openRouterKey) {
     try {
+      const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${openRouterKey}`,
+          'HTTP-Referer': process.env.APP_URL || 'https://schoolpilot.app',
+          'X-Title': 'SchoolPilot',
+        },
+        body: JSON.stringify({
+          model,
+          messages: apiMessages,
+          temperature,
+          max_tokens: maxTokens,
+          ...(jsonMode ? { response_format: { type: 'json_object' } } : {}),
+        }),
+      })
+      if (!res.ok) {
+        const errText = await res.text()
+        throw new Error(errText || `OpenRouter HTTP ${res.status}`)
+      }
+      const data = await res.json()
+      const text = data.choices?.[0]?.message?.content
+      if (!text) throw new Error('Empty AI response')
+      return { text, provider: 'openrouter', model: data.model || model }
+    } catch (err) {
+      console.error('OpenRouter error:', err.message)
+    }
+  }
+
+  if (openAiKey) {
+    try {
+      const openAiModel = model.includes('/') ? model.split('/').pop() : model
       const res = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${apiKey}`,
+          Authorization: `Bearer ${openAiKey}`,
         },
         body: JSON.stringify({
-          model,
-          messages: [{ role: 'system', content: systemPrompt }, ...messages],
+          model: openAiModel,
+          messages: apiMessages,
           temperature,
           ...(jsonMode ? { response_format: { type: 'json_object' } } : {}),
         }),
@@ -24,7 +60,7 @@ async function completeChat({ systemPrompt, messages, jsonMode = false, temperat
       const data = await res.json()
       const text = data.choices?.[0]?.message?.content
       if (!text) throw new Error('Empty AI response')
-      return { text, provider: 'openai', model }
+      return { text, provider: 'openai', model: openAiModel }
     } catch (err) {
       console.error('OpenAI error:', err.message)
     }

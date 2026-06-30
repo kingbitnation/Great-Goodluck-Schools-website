@@ -21,8 +21,8 @@ const { registerCbtRoutes } = require('./routes/cbtRoutes')
 const { registerAnalyticsRoutes } = require('./routes/analyticsRoutes')
 const { registerFinanceRoutes } = require('./routes/financeRoutes')
 const { registerEmailRoutes } = require('./routes/emailRoutes')
-const { enqueueEmail, processEmailQueue, queueFeeReminders } = require('./lib/emailQueue')
-const { processSmsQueue } = require('./lib/smsQueue')
+const { enqueueEmail, queueFeeReminders } = require('./lib/emailQueue')
+const { startQueueWorker } = require('./lib/queueWorker')
 const { dispatchNotification } = require('./lib/notificationDispatcher')
 const { buildHealthReport } = require('./lib/monitoring')
 const { createRateLimiter, authRateLimiter, auditLogger } = require('./middleware/security')
@@ -53,6 +53,7 @@ const { registerDeveloperRoutes } = require('./routes/developerRoutes')
 const { registerCalendarRoutes } = require('./routes/calendarRoutes')
 const { registerDocumentRoutes } = require('./routes/documentRoutes')
 const { registerOAuthRoutes, registerPaymentGatewayRoutes } = require('./routes/oauthRoutes')
+const { registerImportRoutes } = require('./routes/importRoutes')
 const { registerEnterpriseRoutes } = require('./routes/enterpriseRoutes')
 const { createModuleFeatureGuard } = require('./middleware/moduleFeatureGuard')
 const { csrfProtection, registerCsrfRoute } = require('./middleware/csrf')
@@ -71,7 +72,8 @@ app.use(cors({ origin: true, credentials: true }))
 app.use(express.json({
   limit: '2mb',
   verify: (req, _res, buf) => {
-    if (req.originalUrl === '/api/webhooks/paystack') req.rawBody = buf
+    const webhookPaths = ['/api/webhooks/paystack', '/api/webhooks/flutterwave', '/api/webhooks/stripe']
+    if (webhookPaths.includes(req.originalUrl)) req.rawBody = buf
   },
 }))
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')))
@@ -192,6 +194,7 @@ registerCalendarRoutes(app, { prisma, requireRole })
 registerDocumentRoutes(app, { prisma, requireRole })
 registerOAuthRoutes(app, { prisma, requireRole })
 registerPaymentGatewayRoutes(app, { prisma, requireRole, dispatchNotification })
+registerImportRoutes(app, { prisma, requireRole, enforceStudentLimit })
 registerEnterpriseRoutes(app, { prisma, requireRole, dispatchNotification })
 registerCompatRoutes(app, { prisma, requireRole })
 registerResourceRoutes(app, { prisma, requireRole, requirePermission, enqueueEmail, enforceStudentLimit })
@@ -200,13 +203,7 @@ registerCbtRoutes(app, { prisma, requireRole })
 registerAnalyticsRoutes(app, { prisma, requireRole })
 registerEmailRoutes(app, { prisma, requireRole, requirePermission })
 
-setInterval(() => {
-  processEmailQueue().catch((err) => console.error('Email queue error:', err))
-}, 30000)
-
-setInterval(() => {
-  processSmsQueue().catch((err) => console.error('SMS queue error:', err))
-}, 30000)
+startQueueWorker(30000)
 
 // Daily fee reminder sweep at server start + every 24h
 async function runFeeReminderSweep() {

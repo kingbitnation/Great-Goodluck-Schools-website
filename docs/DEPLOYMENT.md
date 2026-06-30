@@ -2,6 +2,8 @@
 
 Production launch checklist for SchoolPilot.
 
+**Recommended cloud stack (Phase A):** Neon + Railway/Render + Vercel — see **[LAUNCH_VERCEL_RAILWAY.md](./LAUNCH_VERCEL_RAILWAY.md)**.
+
 ## 1. Generate production secrets
 
 ```bash

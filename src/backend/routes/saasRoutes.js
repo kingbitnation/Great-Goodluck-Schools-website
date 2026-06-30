@@ -100,22 +100,44 @@ function registerSaasRoutes(app, { prisma, requireRole, enqueueEmail }) {
         expiresAt: Date.now() + 10 * 60 * 1000,
       })
 
-      let smsSent = false
-      try {
-        const { enqueueSms } = require('../lib/smsQueue')
-        await enqueueSms({
-          to: phone,
-          body: `Your SchoolPilot verification code is ${code}. Valid for 10 minutes.`,
-          template: 'general',
-          payload: { message: `Your SchoolPilot verification code is ${code}` },
-        })
-        smsSent = true
-      } catch (smsErr) {
-        console.warn('SMS send failed:', smsErr.message)
+      const smsBody = `Your SchoolPilot verification code is ${code}. Valid for 10 minutes.`
+      const { resolveSmsConfig } = require('../lib/smsQueue')
+      const { sendSms } = require('../lib/smsProviders')
+      const smsConfig = await resolveSmsConfig(null)
+
+      let smsDelivered = false
+      let smsError = ''
+      if (smsConfig.smsEnabled) {
+        try {
+          await sendSms({
+            provider: smsConfig.smsProvider,
+            config: smsConfig,
+            to: phone,
+            message: smsBody,
+          })
+          smsDelivered = true
+        } catch (smsErr) {
+          smsError = smsErr.message || 'SMS send failed'
+          console.warn('SMS send failed:', smsError)
+        }
       }
 
-      const payload = { message: smsSent ? 'Verification code sent' : 'SMS not configured — use the code shown below (dev only)' }
-      if (!smsSent || process.env.NODE_ENV !== 'production') {
+      const showOnScreenCode = !smsDelivered
+      const payload = {
+        message: smsDelivered
+          ? 'Verification code sent to your phone'
+          : smsConfig.smsEnabled
+            ? 'SMS could not be delivered — use the verification code shown below'
+            : 'SMS is not set up — enter the verification code shown below',
+      }
+      if (smsError && !smsDelivered) {
+        payload.smsHint = smsError.includes('SenderId')
+          ? 'Register your sender ID (SchoolPilot) in the Termii dashboard, or use an approved sender name.'
+          : smsError
+      }
+      if (showOnScreenCode) {
+        payload.devCode = code
+      } else if (process.env.NODE_ENV !== 'production') {
         payload.devCode = code
       }
       res.json(payload)

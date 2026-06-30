@@ -5,10 +5,11 @@ export type Plan = {
   id: string
   name: string
   slug: string
-  price: number
+  price?: number
   quarterlyPrice?: number | null
   yearlyPrice?: number | null
   maxStudents: number | null
+  trialDays?: number
   isPopular?: boolean
   contactSales?: boolean
   planFeatures?: Array<{ key: string; label: string }>

@@ -61,6 +61,49 @@ function StudentsPage({ user }: { user: AuthUser }) {
   const [gender, setGender] = useState('')
   const [address, setAddress] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [importing, setImporting] = useState(false)
+  const [importResult, setImportResult] = useState<string | null>(null)
+
+  async function handleExportStudents() {
+    const token = localStorage.getItem('sms_token')
+    const base = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000'
+    const qs = user.schoolId ? `?schoolId=${user.schoolId}` : ''
+    const res = await fetch(`${base}/api/export/students${qs}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      credentials: 'include',
+    })
+    if (!res.ok) {
+      setError('Export failed')
+      return
+    }
+    const blob = await res.blob()
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'students-export.csv'
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  async function handleImportCsv(file: File) {
+    setImporting(true)
+    setImportResult(null)
+    setError(null)
+    try {
+      const csv = await file.text()
+      const res = await apiPost<{ created: number; skipped: number; errors: Array<{ row: number; error: string }> }>(
+        '/api/import/students',
+        { csv, schoolId: user.schoolId, defaultPassword: 'ChangeMe123!' }
+      )
+      setImportResult(`Imported ${res.created} students. Skipped ${res.skipped}.`)
+      if (res.errors.length) setError(`${res.errors.length} row(s) had errors.`)
+      loadPage(1)
+    } catch (e: any) {
+      setError(e.message)
+    } finally {
+      setImporting(false)
+    }
+  }
 
   async function handleAddStudent(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -187,6 +230,16 @@ function StudentsPage({ user }: { user: AuthUser }) {
 
   return (
     <AppLayout user={user} title="Students">
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        <button type="button" onClick={handleExportStudents} className="rounded-md border border-gray-300 px-3 py-2 text-sm hover:bg-gray-50">
+          Export CSV
+        </button>
+        <label className="cursor-pointer rounded-md border border-gray-300 px-3 py-2 text-sm hover:bg-gray-50">
+          {importing ? 'Importing…' : 'Import CSV'}
+          <input type="file" accept=".csv,text/csv" className="hidden" onChange={(e) => e.target.files?.[0] && handleImportCsv(e.target.files[0])} />
+        </label>
+        {importResult && <p className="text-sm text-green-700">{importResult}</p>}
+      </div>
       <form onSubmit={handleAddStudent} className="mb-6 rounded-lg border border-gray-200 bg-white p-5">
         <h2 className="text-sm font-semibold text-gray-900 mb-4">Register student</h2>
         <div className="grid gap-3 md:grid-cols-2">

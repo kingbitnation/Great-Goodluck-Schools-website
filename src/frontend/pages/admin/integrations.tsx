@@ -10,7 +10,7 @@ type IntegrationRow = {
   connection: { status: string; connectedAt: string | null; lastError: string | null } | null
 }
 
-type OAuthStatus = { google: boolean; zoom: boolean; paystack: boolean }
+type OAuthStatus = { google: boolean; zoom: boolean; paystack: boolean; flutterwave: boolean; stripe: boolean }
 
 function IntegrationsPage({ user }: { user: AuthUser }) {
   const router = useRouter()
@@ -20,6 +20,11 @@ function IntegrationsPage({ user }: { user: AuthUser }) {
   const [busy, setBusy] = useState<string | null>(null)
   const [paystackPublic, setPaystackPublic] = useState('')
   const [paystackSecret, setPaystackSecret] = useState('')
+  const [flutterwavePublic, setFlutterwavePublic] = useState('')
+  const [flutterwaveSecret, setFlutterwaveSecret] = useState('')
+  const [flutterwaveHash, setFlutterwaveHash] = useState('')
+  const [stripePublishable, setStripePublishable] = useState('')
+  const [stripeSecret, setStripeSecret] = useState('')
 
   const load = () => {
     apiGet<{ integrations: IntegrationRow[] }>('/api/developer/integrations')
@@ -62,6 +67,43 @@ function IntegrationsPage({ user }: { user: AuthUser }) {
     }
   }
 
+  async function connectFlutterwave(e: React.FormEvent) {
+    e.preventDefault()
+    setBusy('flutterwave')
+    setError(null)
+    try {
+      await apiPost('/api/oauth/flutterwave/connect', {
+        publicKey: flutterwavePublic,
+        secretKey: flutterwaveSecret,
+        secretHash: flutterwaveHash || undefined,
+      })
+      setFlutterwaveSecret('')
+      load()
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  async function connectStripe(e: React.FormEvent) {
+    e.preventDefault()
+    setBusy('stripe')
+    setError(null)
+    try {
+      await apiPost('/api/oauth/stripe/connect', {
+        publishableKey: stripePublishable,
+        secretKey: stripeSecret,
+      })
+      setStripeSecret('')
+      load()
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setBusy(null)
+    }
+  }
+
   async function disconnect(slug: string) {
     setBusy(slug)
     await apiPost(`/api/developer/integrations/${slug}/disconnect`, {})
@@ -72,7 +114,7 @@ function IntegrationsPage({ user }: { user: AuthUser }) {
   return (
     <AppLayout user={user} title="Integrations">
       <p className="mb-4 text-sm text-gray-600">
-        Connect Google Workspace, Zoom, and Paystack with real OAuth or API key verification.
+        Connect Google Workspace, Zoom, Paystack, Flutterwave, and Stripe with real OAuth or API key verification.
       </p>
       {error && <p className="mb-4 text-sm text-red-600">{error}</p>}
 
@@ -88,12 +130,40 @@ function IntegrationsPage({ user }: { user: AuthUser }) {
         </form>
       </section>
 
+      <section className="mb-8 rounded-lg border bg-white p-4 shadow-sm">
+        <h2 className="text-sm font-semibold uppercase text-gray-500">Flutterwave (school fees)</h2>
+        <p className="mt-1 text-sm text-gray-600">Multi-currency payments for Nigeria and beyond.</p>
+        <form onSubmit={connectFlutterwave} className="mt-3 grid gap-2 sm:grid-cols-2">
+          <input value={flutterwavePublic} onChange={(e) => setFlutterwavePublic(e.target.value)} placeholder="Public key (FLWPUBK…)" className="rounded border px-3 py-2 text-sm" />
+          <input type="password" value={flutterwaveSecret} onChange={(e) => setFlutterwaveSecret(e.target.value)} placeholder="Secret key" className="rounded border px-3 py-2 text-sm" />
+          <input value={flutterwaveHash} onChange={(e) => setFlutterwaveHash(e.target.value)} placeholder="Webhook secret hash (optional)" className="sm:col-span-2 rounded border px-3 py-2 text-sm" />
+          <button type="submit" disabled={busy === 'flutterwave'} className="sm:col-span-2 rounded bg-amber-600 px-4 py-2 text-sm font-medium text-white">
+            {busy === 'flutterwave' ? 'Verifying…' : 'Connect Flutterwave'}
+          </button>
+        </form>
+      </section>
+
+      <section className="mb-8 rounded-lg border bg-white p-4 shadow-sm">
+        <h2 className="text-sm font-semibold uppercase text-gray-500">Stripe (international cards)</h2>
+        <p className="mt-1 text-sm text-gray-600">Accept international card payments via Stripe Checkout.</p>
+        <form onSubmit={connectStripe} className="mt-3 grid gap-2 sm:grid-cols-2">
+          <input value={stripePublishable} onChange={(e) => setStripePublishable(e.target.value)} placeholder="Publishable key (pk_…)" className="rounded border px-3 py-2 text-sm" />
+          <input type="password" value={stripeSecret} onChange={(e) => setStripeSecret(e.target.value)} placeholder="Secret key (sk_…)" className="rounded border px-3 py-2 text-sm" />
+          <button type="submit" disabled={busy === 'stripe'} className="sm:col-span-2 rounded bg-amber-600 px-4 py-2 text-sm font-medium text-white">
+            {busy === 'stripe' ? 'Verifying…' : 'Connect Stripe'}
+          </button>
+        </form>
+      </section>
+
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {rows.map(({ provider, connection }) => {
           const connected = connection?.status === 'connected'
           const isGoogle = provider.slug === 'google-workspace'
           const isZoom = provider.slug === 'zoom'
           const isPaystack = provider.slug === 'paystack'
+          const isFlutterwave = provider.slug === 'flutterwave'
+          const isStripe = provider.slug === 'stripe'
+          const isKeyGateway = isPaystack || isFlutterwave || isStripe
           return (
             <article key={provider.slug} className="rounded-lg border bg-white p-4 shadow-sm">
               <p className="text-xs font-medium uppercase tracking-wide text-amber-700">{provider.category}</p>
@@ -126,10 +196,10 @@ function IntegrationsPage({ user }: { user: AuthUser }) {
                   {connected ? 'Reconnect Zoom' : 'Sign in with Zoom'}
                 </button>
               )}
-              {isPaystack && connected && (
+              {isKeyGateway && connected && (
                 <button type="button" onClick={() => disconnect(provider.slug)} className="mt-4 rounded-md border px-3 py-2 text-sm">Disconnect</button>
               )}
-              {!isGoogle && !isZoom && !isPaystack && (
+              {!isGoogle && !isZoom && !isKeyGateway && (
                 <button
                   type="button"
                   disabled={busy === provider.slug}

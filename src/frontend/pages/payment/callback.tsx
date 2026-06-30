@@ -4,6 +4,12 @@ import { useRouter } from 'next/router'
 import { SchoolLogo } from '../../components/public/Brand'
 import { apiGet } from '../../lib/api'
 
+const VERIFY_PATHS: Record<string, string> = {
+  paystack: '/api/payments/paystack/verify',
+  flutterwave: '/api/payments/flutterwave/verify',
+  stripe: '/api/payments/stripe/verify',
+}
+
 export default function PaymentCallback() {
   const router = useRouter()
   const [status, setStatus] = useState<'loading' | 'success' | 'failed'>('loading')
@@ -11,12 +17,23 @@ export default function PaymentCallback() {
 
   useEffect(() => {
     const reference = router.query.reference
-    if (!reference || typeof reference !== 'string') {
-      setStatus('failed')
-      setMessage('Missing payment reference.')
+    const gateway = typeof router.query.gateway === 'string' ? router.query.gateway : 'paystack'
+    const sessionId = router.query.session_id
+
+    if (!reference && !sessionId) {
+      if (router.isReady) {
+        setStatus('failed')
+        setMessage('Missing payment reference.')
+      }
       return
     }
-    apiGet<{ status: string }>(`/api/payments/paystack/verify?reference=${encodeURIComponent(reference)}`)
+
+    const path = VERIFY_PATHS[gateway] || VERIFY_PATHS.paystack
+    const params = new URLSearchParams()
+    if (reference && typeof reference === 'string') params.set('reference', reference)
+    if (sessionId && typeof sessionId === 'string') params.set('session_id', sessionId)
+
+    apiGet<{ status: string }>(`${path}?${params.toString()}`)
       .then((res) => {
         if (res.status === 'success') {
           setStatus('success')
@@ -30,7 +47,7 @@ export default function PaymentCallback() {
         setStatus('failed')
         setMessage(e.message || 'Verification failed')
       })
-  }, [router.query.reference])
+  }, [router.isReady, router.query.reference, router.query.gateway, router.query.session_id])
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-school-navy px-4">

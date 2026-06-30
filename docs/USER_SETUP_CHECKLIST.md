@@ -6,6 +6,10 @@ Use this checklist before and after production launch. The platform code is read
 
 ## 1. Production hosting & domain
 
+**Cloud (recommended):** See [LAUNCH_VERCEL_RAILWAY.md](./LAUNCH_VERCEL_RAILWAY.md) — Neon + Railway + Vercel.
+
+**Self-hosted Docker:**
+
 - [ ] Choose a VPS or cloud host (e.g. DigitalOcean, AWS, Hetzner) with at least 2 vCPU, 4 GB RAM, 40 GB disk
 - [ ] Register your **platform** domain (e.g. `schoolpilot.ng`) and point DNS to your server
 - [ ] Copy `.env.production.example` → `.env.production` and run `npm run secrets:generate -- --write` for JWT/CSRF secrets
@@ -66,7 +70,7 @@ Every tenant school must set its own account in **Admin → School branding**:
 
 ## 7. AI features (optional)
 
-- [ ] Set `OPENAI_API_KEY` (or your configured provider)
+- [ ] Set `OPENROUTER_API_KEY` (recommended) or `OPENAI_API_KEY`
 - [ ] Set plan AI credit limits in Super Admin → Plans if you charge for AI usage
 - [ ] **Rotate the key** if it was ever pasted in chat or committed by mistake
 
@@ -117,7 +121,7 @@ DNS TXT verification works in **School branding**. Automated SSL provisioning is
 |-------------|------------------|-------------|
 | ZKTeco / biometric hardware | API + admin UI; no device SDK | Buy devices, vendor SDK or middleware, push scans to `/api/biometrics/...` |
 | GPS / fleet telematics | Manual GPS + browser geolocation | Contract telematics provider or enter coordinates in transport admin |
-| Online payment gateways | **Disabled** — manual bank transfer only | If you re-enable later, new compliance + webhook hardening required |
+| Online payment gateways | Paystack, Flutterwave, Stripe + manual bank transfer | Set platform keys in `.env.production`; schools connect keys in **Integrations** |
 
 ---
 

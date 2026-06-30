@@ -151,6 +151,13 @@ async function queueFeeReminders(prismaClient, schoolId) {
         overdue,
       }
 
+      if (overdue) {
+        const { onFeeOverdue } = require('./workflowEngine')
+        await onFeeOverdue(prismaClient, { schoolId, student, fee, outstanding }).catch((err) => {
+          console.error('Fee overdue workflow error:', err.message)
+        })
+      }
+
       await dispatchNotification(prismaClient, {
         userId: student.user.id,
         schoolId,

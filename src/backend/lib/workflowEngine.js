@@ -106,6 +106,60 @@ async function countConsecutiveAbsentDays(prisma, studentId, beforeDate) {
   return streak
 }
 
+async function onPaymentApproved(prisma, payment) {
+  const student = payment.student || await prisma.student.findUnique({
+    where: { id: payment.studentId },
+    include: {
+      user: { select: { firstName: true, lastName: true } },
+      parent: { include: { user: { select: { id: true, email: true } } } },
+    },
+  })
+  if (!student?.schoolId) return
+
+  const studentName = [student.user?.firstName, student.user?.lastName].filter(Boolean).join(' ')
+  const context = {
+    schoolId: student.schoolId,
+    studentId: student.id,
+    studentName,
+    paymentId: payment.id,
+    amount: payment.paidAmount || payment.amount,
+    reference: payment.paymentReference,
+    gateway: payment.gateway,
+    parentUserId: student.parent?.user?.id,
+    parentEmail: student.parent?.user?.email,
+    message: `Payment of ₦${payment.paidAmount || payment.amount} for ${studentName} was approved.`,
+  }
+
+  await executeWorkflowRules(prisma, {
+    schoolId: student.schoolId,
+    trigger: TRIGGERS.PAYMENT_APPROVED,
+    context,
+  })
+}
+
+async function onFeeOverdue(prisma, { schoolId, student, fee, outstanding }) {
+  if (!schoolId || !student || !fee) return
+  const studentName = [student.user?.firstName, student.user?.lastName].filter(Boolean).join(' ')
+  const context = {
+    schoolId,
+    studentId: student.id,
+    studentName,
+    feeId: fee.id,
+    feeName: fee.name,
+    outstanding,
+    dueDate: fee.dueDate,
+    parentUserId: student.parent?.user?.id,
+    parentEmail: student.parent?.user?.email,
+    message: `${studentName} has overdue fee "${fee.name}" — ₦${outstanding} outstanding.`,
+  }
+
+  await executeWorkflowRules(prisma, {
+    schoolId,
+    trigger: TRIGGERS.FEE_OVERDUE,
+    context,
+  })
+}
+
 async function onAttendanceMarked(prisma, attendance) {
   const student = await prisma.student.findUnique({
     where: { id: attendance.studentId },
@@ -151,4 +205,6 @@ module.exports = {
   TRIGGERS,
   executeWorkflowRules,
   onAttendanceMarked,
+  onPaymentApproved,
+  onFeeOverdue,
 }

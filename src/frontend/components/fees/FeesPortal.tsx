@@ -65,7 +65,7 @@ export default function FeesPortal({ user, studentId, title = 'Fees & Payments',
   const [pendingPayment, setPendingPayment] = useState<Payment | null>(null)
   const [bankDetails, setBankDetails] = useState<BankDetails | null>(null)
   const [gateways, setGateways] = useState<Array<{ id: string; label: string; available: boolean }>>([])
-  const [paymentMethod, setPaymentMethod] = useState<'manual' | 'paystack'>('manual')
+  const [paymentMethod, setPaymentMethod] = useState<string>('manual')
   const fileRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => { if (studentId) loadData() }, [studentId])
@@ -74,7 +74,8 @@ export default function FeesPortal({ user, studentId, title = 'Fees & Payments',
     apiGet<{ gateways: Array<{ id: string; label: string; available: boolean }> }>('/api/payments/gateways')
       .then((d) => {
         setGateways(d.gateways)
-        if (d.gateways.some((g) => g.id === 'paystack')) setPaymentMethod('paystack')
+        const online = d.gateways.find((g) => g.id !== 'manual' && g.available)
+        if (online) setPaymentMethod(online.id)
       })
       .catch(() => {})
   }, [])
@@ -127,8 +128,9 @@ export default function FeesPortal({ user, studentId, title = 'Fees & Payments',
 
       const payload = { studentId, feeId: selectedFee || null, amount, installmentId: selectedInstallment || null, email: user.email }
 
-      if (paymentMethod === 'paystack' && gateways.some((g) => g.id === 'paystack')) {
-        const res = await apiPost<{ authorizationUrl: string }>('/api/payments/paystack/initialize', payload)
+      if (paymentMethod !== 'manual') {
+        const endpoint = `/api/payments/${paymentMethod}/initialize`
+        const res = await apiPost<{ authorizationUrl: string }>(endpoint, payload)
         if (res.authorizationUrl) {
           window.location.href = res.authorizationUrl
           return
@@ -192,6 +194,9 @@ export default function FeesPortal({ user, studentId, title = 'Fees & Payments',
   }
 
   const selectedFeeData = fees.find((f) => f.id === selectedFee)
+  const gatewayHint = paymentMethod === 'manual'
+    ? 'Pay by bank transfer, then upload your receipt.'
+    : `Pay instantly via ${gateways.find((g) => g.id === paymentMethod)?.label || paymentMethod}.`
 
   if (loading) {
     return <AppLayout user={user} title={pageTitle}><div className="p-8">Loading...</div></AppLayout>
@@ -255,15 +260,13 @@ export default function FeesPortal({ user, studentId, title = 'Fees & Payments',
                         <p className="text-xs font-medium text-slate-600">Payment method</p>
                         {gateways.map((g) => (
                           <label key={g.id} className="flex items-center gap-2 text-sm">
-                            <input type="radio" name="gateway" checked={paymentMethod === g.id} onChange={() => setPaymentMethod(g.id as 'manual' | 'paystack')} />
+                            <input type="radio" name="gateway" checked={paymentMethod === g.id} onChange={() => setPaymentMethod(g.id)} />
                             {g.label}
                           </label>
                         ))}
                       </div>
                     )}
-                    <p className="text-xs text-slate-500">
-                      {paymentMethod === 'paystack' ? 'Pay instantly with card, bank, or USSD via Paystack.' : 'Pay by bank transfer, then upload your receipt.'}
-                    </p>
+                    <p className="text-xs text-slate-500">{gatewayHint}</p>
                   </div>
                   <div className="mt-6 flex gap-3">
                     <button onClick={handlePayment} disabled={processing} className="btn-gold flex-1 justify-center">{processing ? 'Processing...' : 'Continue'}</button>
