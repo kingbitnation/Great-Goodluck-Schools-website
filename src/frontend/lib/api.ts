@@ -1,4 +1,4 @@
-import { fetchWithAuth } from './auth'
+import { fetchWithAuth, clearToken } from './auth'
 import { parseJsonResponse } from './apiBase'
 
 async function handleResponse<T>(res: Response): Promise<T> {
@@ -18,7 +18,6 @@ async function handleResponse<T>(res: Response): Promise<T> {
       body.code &&
       blocked.includes(body.code)
     ) {
-      const { clearToken } = await import('./auth')
       clearToken()
       if (!window.location.pathname.startsWith('/login')) {
         window.location.href = `/login?suspended=1&code=${encodeURIComponent(body.code)}`
