@@ -8,7 +8,7 @@ function clientIp(req) {
 }
 
 function registerOtpRoutes(app, { prisma, authRateLimiter, enqueueEmail }) {
-  const rateLimit = authRateLimiter || ((_req, _res, next) => next())
+  const rateLimit = authRateLimiter ? authRateLimiter() : (_req, _res, next) => next()
 
   async function emailSender({ to, subject, text, html }) {
     if (enqueueEmail) {

@@ -11,7 +11,8 @@ function normalizeNgPhone(phone) {
 }
 
 function registerSaasPhoneOtpRoutes(app, { prisma }) {
-  app.post('/api/public/schools/register/phone/send', authRateLimiter, async (req, res) => {
+  const phoneOtpLimit = authRateLimiter()
+  app.post('/api/public/schools/register/phone/send', phoneOtpLimit, async (req, res) => {
     try {
       const phone = normalizeNgPhone(req.body.phone)
       if (!phone) return res.status(400).json({ error: 'Enter a valid Nigerian phone number' })
@@ -46,7 +47,7 @@ function registerSaasPhoneOtpRoutes(app, { prisma }) {
     }
   })
 
-  app.post('/api/public/schools/register/phone/verify', authRateLimiter, async (req, res) => {
+  app.post('/api/public/schools/register/phone/verify', phoneOtpLimit, async (req, res) => {
     try {
       const phone = normalizeNgPhone(req.body.phone)
       const { code, sessionToken } = req.body

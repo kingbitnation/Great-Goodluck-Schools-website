@@ -173,9 +173,9 @@ app.use((req, res, next) => {
 
 registerBillingRoutes(app, { prisma, requireRole, enqueueEmail, dispatchNotification })
 registerSaasRegistrationHooks(app, { prisma, enqueueEmail })
-registerSaasPhoneOtpRoutes(app, { prisma })
 registerSchoolSuspendRoutes(app, { prisma, requireRole })
 registerSaasRoutes(app, { prisma, requireRole, enqueueEmail })
+registerSaasPhoneOtpRoutes(app, { prisma })
 registerOtpRoutes(app, { prisma, authRateLimiter, enqueueEmail })
 registerCertificateRoutes(app, { prisma, requireRole })
 registerIdCardRoutes(app, { prisma, requireRole })
