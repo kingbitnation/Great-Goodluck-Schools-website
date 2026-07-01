@@ -1,5 +1,6 @@
 const bcrypt = require('bcrypt')
 const crypto = require('crypto')
+const { authRateLimiter } = require('../middleware/security')
 const { assertSameSchool } = require('../middleware/tenantGuard')
 const { platformBankDetails } = require('../lib/manualPaymentHelpers')
 const { priceForInterval, resolvePlanSlug } = require('../lib/planLimits')
