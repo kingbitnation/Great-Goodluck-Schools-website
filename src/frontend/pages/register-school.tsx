@@ -100,6 +100,7 @@ export default function RegisterSchool() {
   })
   const [phoneCode, setPhoneCode] = useState('')
   const [phoneVerificationToken, setPhoneVerificationToken] = useState('')
+  const [phoneSessionToken, setPhoneSessionToken] = useState('')
   const [phoneVerified, setPhoneVerified] = useState(false)
   const [phoneDevHint, setPhoneDevHint] = useState('')
   const [sendingCode, setSendingCode] = useState(false)

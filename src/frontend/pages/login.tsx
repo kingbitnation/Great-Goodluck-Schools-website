@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
 import { apiBaseUrl, parseJsonResponse } from '../lib/apiBase'
 import { saveToken } from '../lib/auth'

@@ -1,5 +1,6 @@
 const {
   processExpiredTrials,
+  processExpiredSubscriptions,
   processRenewalReminders,
   processAutoRenewals,
 } = require('./subscriptionHelpers')
@@ -12,10 +13,11 @@ function startSubscriptionJobs(prisma, { dispatchNotification } = {}) {
   const run = async () => {
     try {
       const expired = await processExpiredTrials(prisma, { notify })
+      const subsExpired = await processExpiredSubscriptions(prisma, { notify })
       const reminders = await processRenewalReminders(prisma, { notify })
       const renewals = await processAutoRenewals(prisma)
-      if (expired || reminders || renewals) {
-        console.log(`[billing-jobs] expired=${expired} reminders=${reminders} renewals=${renewals}`)
+      if (expired || subsExpired || reminders || renewals) {
+        console.log(`[billing-jobs] trials=${expired} subs=${subsExpired} reminders=${reminders} renewals=${renewals}`)
       }
     } catch (err) {
       console.error('[billing-jobs] error:', err.message)

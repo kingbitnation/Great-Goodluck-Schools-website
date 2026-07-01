@@ -3,7 +3,7 @@ import { Html, Head, Main, NextScript } from 'next/document'
 const themeInitScript = `
 (function () {
   try {
-    var stored = localStorage.getItem('sms_theme');
+    var stored = localStorage.getItem('sp_theme') || localStorage.getItem('sms_theme');
     var dark = stored === 'dark' || (!stored && window.matchMedia('(prefers-color-scheme: dark)').matches);
     if (dark) document.documentElement.classList.add('dark');
     document.documentElement.style.colorScheme = dark ? 'dark' : 'light';

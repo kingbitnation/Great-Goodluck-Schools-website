@@ -1,6 +1,7 @@
 const bcrypt = require('bcrypt')
 const { tenantWhere } = require('../middleware/tenantGuard')
 const { checkTenantAccess, ensureStudentViewerAccess } = require('../lib/tenantHelpers')
+const { PLATFORM_PREFIX } = require('../lib/platformBrand')
 
 function schoolScope(user) {
   return tenantWhere(user)
@@ -164,6 +165,52 @@ function registerResourceRoutes(app, { prisma, requireRole, requirePermission, e
         orderBy: { admissionDate: 'desc' },
       })
       res.json(students)
+    } catch (err) {
+      console.error(err)
+      res.status(500).json({ error: 'Server error' })
+    }
+  })
+
+  app.get('/api/teachers/search', requireRole('SuperAdmin', 'SchoolAdmin'), async (req, res) => {
+    try {
+      const { q, page = 1, pageSize = 20 } = req.query
+      const pageNum = Math.max(1, Number(page))
+      const take = Math.min(100, Number(pageSize) || 20)
+      const skip = (pageNum - 1) * take
+
+      const scope = schoolScope(req.user)
+      const schoolId = req.query.schoolId || scope.schoolId
+      const where =
+        req.user.role === 'SuperAdmin' && !schoolId
+          ? {}
+          : schoolId && schoolId !== '__none__'
+            ? { schoolId: String(schoolId) }
+            : { schoolId: '__none__' }
+
+      if (q) {
+        where.OR = [
+          { staffNo: { contains: String(q), mode: 'insensitive' } },
+          { department: { contains: String(q), mode: 'insensitive' } },
+          { user: { email: { contains: String(q), mode: 'insensitive' } } },
+          { user: { firstName: { contains: String(q), mode: 'insensitive' } } },
+          { user: { lastName: { contains: String(q), mode: 'insensitive' } } },
+        ]
+      }
+
+      const [total, data] = await Promise.all([
+        prisma.teacher.count({ where }),
+        prisma.teacher.findMany({
+          where,
+          include: {
+            user: { select: { email: true, firstName: true, lastName: true } },
+            _count: { select: { subjects: true } },
+          },
+          orderBy: { hireDate: 'desc' },
+          skip,
+          take,
+        }),
+      ])
+      res.json({ data, total, page: pageNum, pageSize: take })
     } catch (err) {
       console.error(err)
       res.status(500).json({ error: 'Server error' })
@@ -486,6 +533,37 @@ function registerResourceRoutes(app, { prisma, requireRole, requirePermission, e
   })
 
   // --- Student detailed endpoints: GET by id, update, delete, search/paginate, promote
+  // NOTE: /search must be registered BEFORE /:id to avoid "search" being treated as an id.
+  app.get('/api/students/search', requireRole('SuperAdmin', 'SchoolAdmin', 'Teacher'), async (req, res) => {
+    try {
+      const { q, classId, page = 1, pageSize = 20 } = req.query
+      const pageNum = Math.max(1, Number(page))
+      const take = Math.min(100, Number(pageSize) || 20)
+      const skip = (pageNum - 1) * take
+
+      const where = { ...schoolScope(req.user) }
+      if (classId) where.classId = String(classId)
+      if (q) {
+        where.OR = [
+          { admissionNo: { contains: String(q), mode: 'insensitive' } },
+          { user: { email: { contains: String(q), mode: 'insensitive' } } },
+          { user: { firstName: { contains: String(q), mode: 'insensitive' } } },
+          { user: { lastName: { contains: String(q), mode: 'insensitive' } } },
+        ]
+      }
+
+      const [total, data] = await Promise.all([
+        prisma.student.count({ where }),
+        prisma.student.findMany({ where, include: { user: { select: { email: true, firstName: true, lastName: true } }, class: { select: { name: true } } }, orderBy: { admissionDate: 'desc' }, skip, take }),
+      ])
+
+      res.json({ data, total, page: pageNum, pageSize: take })
+    } catch (err) {
+      console.error(err)
+      res.status(500).json({ error: 'Server error' })
+    }
+  })
+
   app.get('/api/students/:id', requireRole('SuperAdmin', 'SchoolAdmin', 'Teacher'), async (req, res) => {
     try {
       const student = await prisma.student.findUnique({
@@ -555,35 +633,6 @@ function registerResourceRoutes(app, { prisma, requireRole, requirePermission, e
     }
   })
 
-  app.get('/api/students/search', requireRole('SuperAdmin', 'SchoolAdmin', 'Teacher'), async (req, res) => {
-    try {
-      const { q, classId, page = 1, pageSize = 20 } = req.query
-      const pageNum = Math.max(1, Number(page))
-      const take = Math.min(100, Number(pageSize) || 20)
-      const skip = (pageNum - 1) * take
-
-      const where = { ...schoolScope(req.user) }
-      if (classId) where.classId = String(classId)
-      if (q) {
-        where.OR = [
-          { admissionNo: { contains: String(q), mode: 'insensitive' } },
-          { user: { email: { contains: String(q), mode: 'insensitive' } } },
-          { user: { firstName: { contains: String(q), mode: 'insensitive' } } },
-          { user: { lastName: { contains: String(q), mode: 'insensitive' } } },
-        ]
-      }
-
-      const [total, data] = await Promise.all([
-        prisma.student.count({ where }),
-        prisma.student.findMany({ where, include: { user: { select: { email: true, firstName: true, lastName: true } }, class: { select: { name: true } } }, orderBy: { admissionDate: 'desc' }, skip, take }),
-      ])
-
-      res.json({ data, total, page: pageNum, pageSize: take })
-    } catch (err) {
-      console.error(err)
-      res.status(500).json({ error: 'Server error' })
-    }
-  })
 
   app.post('/api/students/:id/promote', requireRole('SuperAdmin', 'SchoolAdmin'), async (req, res) => {
     try {
@@ -689,9 +738,53 @@ function registerResourceRoutes(app, { prisma, requireRole, requirePermission, e
   })
 
   // --- Subject management
+  app.get('/api/subjects/search', requireRole('SuperAdmin', 'SchoolAdmin', 'Teacher'), async (req, res) => {
+    try {
+      const { q, classId, page = 1, pageSize = 20 } = req.query
+      const pageNum = Math.max(1, Number(page))
+      const take = Math.min(100, Number(pageSize) || 20)
+      const skip = (pageNum - 1) * take
+
+      const scope = schoolScope(req.user)
+      const schoolId = req.query.schoolId || scope.schoolId
+      const where = {}
+      if (schoolId && schoolId !== '__none__') where.schoolId = String(schoolId)
+      if (classId) where.classId = String(classId)
+      if (q) {
+        where.OR = [
+          { code: { contains: String(q), mode: 'insensitive' } },
+          { name: { contains: String(q), mode: 'insensitive' } },
+          { description: { contains: String(q), mode: 'insensitive' } },
+        ]
+      }
+
+      const [total, data] = await Promise.all([
+        prisma.subject.count({ where }),
+        prisma.subject.findMany({
+          where,
+          include: { teacher: { include: { user: { select: { firstName: true, lastName: true } } } }, class: { select: { id: true, name: true } } },
+          orderBy: { name: 'asc' },
+          skip,
+          take,
+        }),
+      ])
+      res.json({ data, total, page: pageNum, pageSize: take })
+    } catch (err) {
+      console.error(err)
+      res.status(500).json({ error: 'Server error' })
+    }
+  })
+
   app.get('/api/subjects', requireRole('SuperAdmin', 'SchoolAdmin', 'Teacher'), async (req, res) => {
     try {
-      const subjects = await prisma.subject.findMany({ include: { teacher: { include: { user: true } }, school: true, class: true } })
+      const scope = schoolScope(req.user)
+      const schoolId = req.query.schoolId || scope.schoolId
+      const where = schoolId && schoolId !== '__none__' ? { schoolId: String(schoolId) } : {}
+      const subjects = await prisma.subject.findMany({
+        where,
+        include: { teacher: { include: { user: true } }, school: true, class: true },
+        orderBy: { name: 'asc' },
+      })
       res.json(subjects)
     } catch (err) {
       console.error(err)
@@ -795,6 +888,27 @@ function registerResourceRoutes(app, { prisma, requireRole, requirePermission, e
           await prisma.subject.update({ where: { id: s.id }, data: { teacherId: tid } })
           count++
         }
+      }
+      res.json({ assigned: count })
+    } catch (err) {
+      console.error(err)
+      res.status(500).json({ error: 'Server error' })
+    }
+  })
+
+  app.post('/api/classes/:id/assign-subjects', requireRole('SuperAdmin', 'SchoolAdmin'), async (req, res) => {
+    try {
+      const { subjectIds } = req.body
+      if (!Array.isArray(subjectIds)) return res.status(400).json({ error: 'subjectIds must be an array' })
+      const klass = await prisma.class.findUnique({ where: { id: req.params.id } })
+      if (!klass) return res.status(404).json({ error: 'Class not found' })
+      let count = 0
+      for (const sid of subjectIds) {
+        await prisma.subject.update({
+          where: { id: sid },
+          data: { classId: req.params.id, schoolId: klass.schoolId },
+        })
+        count++
       }
       res.json({ assigned: count })
     } catch (err) {
@@ -1950,7 +2064,7 @@ function registerResourceRoutes(app, { prisma, requireRole, requirePermission, e
             gateway: gw,
             status: isManual ? 'pending' : 'pending',
             verificationStatus: isManual ? 'pending_verification' : 'none',
-            paymentReference: isManual ? `GGS-${Date.now().toString(36).toUpperCase()}` : null,
+            paymentReference: isManual ? `${PLATFORM_PREFIX}-${Date.now().toString(36).toUpperCase()}` : null,
             paidAt: null,
           },
           include: { student: { include: { user: true } }, fee: true },

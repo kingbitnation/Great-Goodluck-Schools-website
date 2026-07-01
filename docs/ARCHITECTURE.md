@@ -1,4 +1,4 @@
-# School Management System — Architecture
+# SchoolPilot — Architecture
 
 ## Stack
 - **Frontend:** Next.js 13 (Pages Router), React 18, TypeScript, Tailwind CSS
@@ -8,7 +8,7 @@
 
 ## Structure
 ```
-coggc/
+project-root/
 ├── prisma/              # Schema, migrations, seed
 ├── src/backend/         # Express API (server.js + routes/)
 ├── src/frontend/        # Next.js app (pages/, components/, lib/)

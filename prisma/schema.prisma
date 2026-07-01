@@ -33,6 +33,7 @@ model User {
   authTokens            AuthToken[]
   loginHistory          LoginHistory[]
   twoFactorBackupCodes  TwoFactorBackupCode[]
+  otpVerifications      OtpVerification[]
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
   
@@ -159,6 +160,45 @@ model TwoFactorBackupCode {
   createdAt DateTime @default(now())
 
   @@index([userId])
+}
+
+model OtpVerification {
+  id            String    @id @default(uuid())
+  userId        String?
+  user          User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  destination   String
+  channel       String    // email | sms
+  purpose       String    // phone_verification, email_verification, password_reset, login_verification
+  codeHash      String
+  sessionToken  String    @unique
+  expiresAt     DateTime
+  attemptCount  Int       @default(0)
+  maxAttempts   Int       @default(5)
+  consumedAt    DateTime?
+  invalidatedAt DateTime?
+  lastSentAt    DateTime  @default(now())
+  ipAddress     String?
+  metadata      Json?
+  createdAt     DateTime  @default(now())
+
+  @@index([destination, purpose])
+  @@index([userId])
+  @@index([sessionToken])
+  @@index([expiresAt])
+}
+
+model OtpAuditLog {
+  id          String   @id @default(uuid())
+  otpId       String?
+  destination String
+  purpose     String
+  event       String   // sent, verified, failed, expired, invalidated, rate_limited, resend
+  userId      String?
+  ipAddress   String?
+  createdAt   DateTime @default(now())
+
+  @@index([destination])
+  @@index([createdAt])
 }
 
 // ============ SCHOOLS & ORGANIZATION ============

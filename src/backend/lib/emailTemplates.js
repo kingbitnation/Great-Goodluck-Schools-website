@@ -98,18 +98,19 @@ function templates(payload = {}, brand = {}) {
       }),
     },
     payment_approved: {
-      subject: `Payment approved — ${school}`,
-      text: `Your payment of ₦${p.amount} (ref: ${p.reference}) has been approved.\n\n${school}`,
+      subject: `Payment approved — SchoolPilot`,
+      text: `Dear ${p.firstName || name}, your payment has been successfully verified and approved. You can now view the updated payment status on your SchoolPilot dashboard. Amount: ₦${p.amount}. Ref: ${p.reference}. Powered by SchoolPilot.`,
       html: layout({
         title: 'Payment approved',
-        brand,
-        bodyHtml: `<p>Hello <strong>${escapeHtml(name)}</strong>,</p>
-          <p>Your payment has been <strong style="color:#16a34a;">approved</strong>.</p>
+        brand: { ...brand, schoolName: 'SchoolPilot' },
+        bodyHtml: `<p>Dear <strong>${escapeHtml(p.firstName || name)}</strong>,</p>
+          <p>Your payment has been successfully verified and approved. You can now view the updated payment status on your SchoolPilot dashboard.</p>
           <table style="width:100%;border-collapse:collapse;margin:16px 0;">
             <tr><td style="padding:8px 0;color:#64748b;">Amount</td><td style="padding:8px 0;font-weight:600;">₦${escapeHtml(p.amount)}</td></tr>
             <tr><td style="padding:8px 0;color:#64748b;">Reference</td><td style="padding:8px 0;">${escapeHtml(p.reference)}</td></tr>
           </table>
-          ${button(`${APP_URL}/student/fees`, 'View fees')}`,
+          <p style="font-size:13px;color:#64748b;">Powered by SchoolPilot.</p>
+          ${button(`${APP_URL}/student/fees`, 'View payment status')}`,
       }),
     },
     payment_rejected: {
@@ -383,6 +384,41 @@ function templates(payload = {}, brand = {}) {
         brand,
         bodyHtml: `<p><strong>${escapeHtml(p.name)}</strong> (${escapeHtml(p.email)}) sent a message:</p>
           <p style="background:#f8fafc;padding:16px;border-radius:8px;">${escapeHtml(p.message)}</p>`,
+      }),
+    },
+    school_registration_received: {
+      subject: 'SchoolPilot — registration received',
+      text: `Dear ${p.firstName || 'there'},\n\nThank you for registering ${p.schoolName || 'your school'} on SchoolPilot (${p.planName || 'plan'}). Reference: ${p.reference || '—'}.\n\nWe are reviewing your payment and documents. You will receive another email when your school is approved.\n\nPowered by SchoolPilot.`,
+      html: layout({
+        title: 'Registration received',
+        brand: { ...DEFAULT_BRAND },
+        bodyHtml: `<p>Dear <strong>${escapeHtml(p.firstName || 'there')}</strong>,</p>
+          <p>Thank you for registering <strong>${escapeHtml(p.schoolName || 'your school')}</strong> on SchoolPilot.</p>
+          <p>Plan: <strong>${escapeHtml(p.planName || '—')}</strong><br/>Payment reference: <strong>${escapeHtml(p.reference || '—')}</strong></p>
+          <p>We are reviewing your payment and documents. You will receive another email when your school is approved.</p>
+          <p style="font-size:13px;color:#64748b;">Powered by SchoolPilot.</p>`,
+      }),
+    },
+    school_approved: {
+      subject: 'SchoolPilot — your school has been approved',
+      text: `Dear ${p.firstName || 'there'},\n\nGreat news! ${p.schoolName || 'Your school'} has been approved on SchoolPilot. Sign in at ${APP_URL}/login with ${p.loginEmail || 'your email'}.\n\nPowered by SchoolPilot.`,
+      html: layout({
+        title: 'School approved',
+        brand: { ...DEFAULT_BRAND },
+        bodyHtml: `<p>Dear <strong>${escapeHtml(p.firstName || 'there')}</strong>,</p>
+          <p>Great news! <strong>${escapeHtml(p.schoolName || 'Your school')}</strong> has been approved on SchoolPilot.</p>
+          <p>You can now sign in and complete your school setup.</p>
+          ${button(`${APP_URL}/login`, 'Sign in to SchoolPilot')}
+          <p style="font-size:13px;color:#64748b;">Login email: ${escapeHtml(p.loginEmail || '—')}</p>`,
+      }),
+    },
+    otp_verification: {
+      subject: 'Your SchoolPilot verification code',
+      text: payload.body || 'Your SchoolPilot verification code was sent.',
+      html: layout({
+        title: 'Verification code',
+        brand: { ...DEFAULT_BRAND },
+        bodyHtml: payload.htmlBody || `<p>${escapeHtml(payload.body || 'Your verification code was sent.')}</p>`,
       }),
     },
   }

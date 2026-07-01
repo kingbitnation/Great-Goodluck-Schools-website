@@ -14,7 +14,7 @@ Set `APP_URL` on the backend to your Vercel frontend URL after step 2.
 ## 2. Import project on Vercel
 
 1. Go to [vercel.com/new](https://vercel.com/new)
-2. Import **Great-Goodluck-Schools-website** from GitHub
+2. Import your **SchoolPilot** GitHub repository (repo name may still be `Great-Goodluck-Schools-website` until you rename it on GitHub)
 3. Set **Root Directory** to `src/frontend`
 4. Framework: **Next.js** (auto-detected)
 

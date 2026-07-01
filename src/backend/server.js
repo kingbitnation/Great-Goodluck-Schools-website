@@ -27,6 +27,7 @@ const { dispatchNotification } = require('./lib/notificationDispatcher')
 const { buildHealthReport } = require('./lib/monitoring')
 const { createRateLimiter, authRateLimiter, auditLogger } = require('./middleware/security')
 const { createTenantGuard } = require('./middleware/tenantGuard')
+const { registerSchoolSuspendRoutes } = require('./routes/schoolSuspendRoutes')
 const { registerSaasRoutes } = require('./routes/saasRoutes')
 const { registerLmsRoutes } = require('./routes/lmsRoutes')
 const { registerLiveClassRoutes } = require('./routes/liveClassRoutes')
@@ -54,6 +55,9 @@ const { registerCalendarRoutes } = require('./routes/calendarRoutes')
 const { registerDocumentRoutes } = require('./routes/documentRoutes')
 const { registerOAuthRoutes, registerPaymentGatewayRoutes } = require('./routes/oauthRoutes')
 const { registerImportRoutes } = require('./routes/importRoutes')
+const { registerOtpRoutes } = require('./routes/otpRoutes')
+const { registerSaasRegistrationHooks } = require('./lib/saasRegistrationHooks')
+const { registerSaasPhoneOtpRoutes } = require('./routes/saasPhoneOtpRoutes')
 const { registerEnterpriseRoutes } = require('./routes/enterpriseRoutes')
 const { createModuleFeatureGuard } = require('./middleware/moduleFeatureGuard')
 const { csrfProtection, registerCsrfRoute } = require('./middleware/csrf')
@@ -70,7 +74,7 @@ app.use(helmet({
 }))
 app.use(cors({ origin: true, credentials: true }))
 app.use(express.json({
-  limit: '2mb',
+  limit: process.env.JSON_BODY_LIMIT || '15mb',
   verify: (req, _res, buf) => {
     const webhookPaths = ['/api/webhooks/paystack', '/api/webhooks/flutterwave', '/api/webhooks/stripe']
     if (webhookPaths.includes(req.originalUrl)) req.rawBody = buf
@@ -160,7 +164,7 @@ app.use((req, res, next) => {
 app.use(moduleFeatureGuard)
 
 app.use((req, res, next) => {
-  const openPaths = ['/api/health', '/api/auth/', '/api/public/', '/api/webhooks/', '/api/oauth/', '/api/docs/']
+  const openPaths = ['/api/health', '/api/auth/', '/api/public/', '/api/otp/', '/api/webhooks/', '/api/oauth/', '/api/docs/']
   if (!req.path.startsWith('/api/')) return next()
   if (openPaths.some((p) => req.path.startsWith(p))) return next()
   if (!req.user || req.user.role === 'SuperAdmin') return next()
@@ -168,7 +172,11 @@ app.use((req, res, next) => {
 })
 
 registerBillingRoutes(app, { prisma, requireRole, enqueueEmail, dispatchNotification })
+registerSaasRegistrationHooks(app, { prisma, enqueueEmail })
+registerSaasPhoneOtpRoutes(app, { prisma })
+registerSchoolSuspendRoutes(app, { prisma, requireRole })
 registerSaasRoutes(app, { prisma, requireRole, enqueueEmail })
+registerOtpRoutes(app, { prisma, authRateLimiter, enqueueEmail })
 registerCertificateRoutes(app, { prisma, requireRole })
 registerIdCardRoutes(app, { prisma, requireRole })
 registerLmsRoutes(app, { prisma, requireRole })
@@ -254,3 +262,5 @@ app.listen(port, () => {
   console.log(`Backend server running on http://localhost:${port}`)
   console.log(`Health check: http://localhost:${port}/api/health`)
 })
+
+

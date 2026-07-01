@@ -28,7 +28,7 @@ git push origin main
 
 1. Go to **[railway.app](https://railway.app)** → sign in with GitHub  
 2. **New Project** → **Deploy from GitHub repo**  
-3. Select: `kingbitnation/Great-Goodluck-Schools-website`  
+3. Select your **SchoolPilot** GitHub repo (may appear as `Great-Goodluck-Schools-website` until renamed)  
 4. Railway creates a service — it uses the root `Dockerfile` automatically  
 
 **Do not** add a Railway PostgreSQL database — you already use **Neon**.

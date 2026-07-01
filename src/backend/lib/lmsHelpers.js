@@ -1,5 +1,6 @@
 const crypto = require('crypto')
 const { tenantWhere } = require('../middleware/tenantGuard')
+const { PLATFORM_PREFIX } = require('./platformBrand')
 
 function schoolScope(user) {
   return tenantWhere(user)
@@ -83,7 +84,7 @@ async function issueCertificateIfComplete(prisma, courseId, studentId) {
     data: {
       courseId,
       studentId,
-      certificateNumber: `GGS-CERT-${year}-${suffix}`,
+      certificateNumber: `${PLATFORM_PREFIX}-CERT-${year}-${suffix}`,
       verifyCode: crypto.randomBytes(8).toString('hex'),
     },
   })

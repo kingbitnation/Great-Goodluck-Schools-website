@@ -20,8 +20,10 @@ const {
 } = require('../lib/domainHelpers')
 
 const APP_URL = process.env.APP_URL || 'http://localhost:3000'
+const { sendOtp, verifyOtp, resendOtp, assertVerifiedSession } = require('../lib/otpService')
+const { sendMail } = require('../lib/email')
 
-const phoneVerifications = new Map()
+const phoneVerifications = new Map() // legacy fallback if OTP tables not migrated yet
 
 function normalizeNgPhone(phone) {
   const digits = String(phone || '').replace(/\D/g, '')
@@ -87,71 +89,61 @@ function registerSaasRoutes(app, { prisma, requireRole, enqueueEmail }) {
     }
   })
 
-  app.post('/api/public/schools/register/phone/send', async (req, res) => {
+  app.post('/api/public/schools/register/phone/send', authRateLimiter, async (req, res) => {
     try {
       const phone = normalizeNgPhone(req.body.phone)
       if (!phone) return res.status(400).json({ error: 'Enter a valid Nigerian phone number' })
 
-      const code = String(Math.floor(100000 + Math.random() * 900000))
-      const verificationToken = crypto.randomBytes(24).toString('hex')
-      phoneVerifications.set(phone, {
-        code,
-        verificationToken,
-        expiresAt: Date.now() + 10 * 60 * 1000,
-      })
-
-      const smsBody = `Your SchoolPilot verification code is ${code}. Valid for 10 minutes.`
       const { resolveSmsConfig } = require('../lib/smsQueue')
       const { sendSms } = require('../lib/smsProviders')
-      const smsConfig = await resolveSmsConfig(null)
 
-      let smsDelivered = false
-      let smsError = ''
-      if (smsConfig.smsEnabled) {
-        try {
-          await sendSms({
-            provider: smsConfig.smsProvider,
-            config: smsConfig,
-            to: phone,
-            message: smsBody,
-          })
-          smsDelivered = true
-        } catch (smsErr) {
-          smsError = smsErr.message || 'SMS send failed'
-          console.warn('SMS send failed:', smsError)
-        }
-      }
+      const result = await sendOtp(prisma, {
+        destination: phone,
+        channel: 'sms',
+        purpose: 'phone_verification',
+        ipAddress: req.ip,
+        sendSms: async ({ to, message }) => {
+          const smsConfig = await resolveSmsConfig(null)
+          if (!smsConfig.smsEnabled) {
+            const err = new Error('SMS is not configured')
+            err.code = 'SMS_NOT_CONFIGURED'
+            throw err
+          }
+          await sendSms({ provider: smsConfig.smsProvider, config: smsConfig, to, message })
+        },
+      })
 
-      const showOnScreenCode = !smsDelivered
-      const payload = {
-        message: smsDelivered
-          ? 'Verification code sent to your phone'
-          : smsConfig.smsEnabled
-            ? 'SMS could not be delivered — use the verification code shown below'
-            : 'SMS is not set up — enter the verification code shown below',
-      }
-      if (smsError && !smsDelivered) {
-        payload.smsHint = smsError.includes('SenderId')
-          ? 'Register your sender ID (SchoolPilot) in the Termii dashboard, or use an approved sender name.'
-          : smsError
-      }
-      if (showOnScreenCode) {
-        payload.devCode = code
-      } else if (process.env.NODE_ENV !== 'production') {
-        payload.devCode = code
-      }
-      res.json(payload)
+      res.json({
+        message: 'Verification code sent to your phone',
+        sessionToken: result.sessionToken,
+        phoneVerificationToken: result.sessionToken,
+        expiresInMinutes: result.expiresInMinutes,
+      })
     } catch (err) {
+      const status = err.code === 'RATE_LIMITED' ? 429 : err.code === 'SMS_NOT_CONFIGURED' ? 503 : 500
       console.error(err)
-      res.status(500).json({ error: 'Could not send verification code' })
+      res.status(status).json({ error: err.message || 'Could not send verification code', code: err.code })
     }
   })
 
-  app.post('/api/public/schools/register/phone/verify', async (req, res) => {
+  app.post('/api/public/schools/register/phone/verify', authRateLimiter, async (req, res) => {
     try {
       const phone = normalizeNgPhone(req.body.phone)
-      const { code } = req.body
+      const { code, sessionToken } = req.body
+      const token = sessionToken || req.body.phoneVerificationToken
       if (!phone || !code) return res.status(400).json({ error: 'Phone and code required' })
+
+      if (token && prisma.otpVerification) {
+        const verified = await verifyOtp(prisma, { sessionToken: token, code, ipAddress: req.ip })
+        if (verified.destination !== phone) {
+          return res.status(400).json({ error: 'Phone does not match verification session' })
+        }
+        return res.json({
+          verified: true,
+          phoneVerificationToken: token,
+          sessionToken: token,
+        })
+      }
 
       const entry = phoneVerifications.get(phone)
       if (!entry || entry.expiresAt < Date.now()) {
@@ -160,11 +152,11 @@ function registerSaasRoutes(app, { prisma, requireRole, enqueueEmail }) {
       if (String(code).trim() !== entry.code) {
         return res.status(400).json({ error: 'Incorrect verification code' })
       }
-
-      res.json({ verified: true, phoneVerificationToken: entry.verificationToken })
+      entry.verified = true
+      res.json({ verified: true, phoneVerificationToken: entry.verificationToken, sessionToken: entry.verificationToken })
     } catch (err) {
       console.error(err)
-      res.status(500).json({ error: 'Verification failed' })
+      res.status(400).json({ error: err.message || 'Verification failed', code: err.code })
     }
   })
 
@@ -206,9 +198,13 @@ function registerSaasRoutes(app, { prisma, requireRole, enqueueEmail }) {
     if (!phoneVerificationToken) {
       return res.status(400).json({ error: 'Verify your phone number before registering' })
     }
-    const phoneEntry = phoneVerifications.get(phone)
-    if (!phoneEntry || phoneEntry.verificationToken !== phoneVerificationToken || phoneEntry.expiresAt < Date.now()) {
-      return res.status(400).json({ error: 'Phone verification expired — verify again' })
+    try {
+      await assertVerifiedSession(prisma, phoneVerificationToken, 'phone_verification', phone)
+    } catch (verifyErr) {
+      const phoneEntry = phoneVerifications.get(phone)
+      if (!phoneEntry || phoneEntry.verificationToken !== phoneVerificationToken || phoneEntry.expiresAt < Date.now()) {
+        return res.status(400).json({ error: verifyErr.message || 'Phone verification expired — verify again' })
+      }
     }
     const passwordError = validateRegistrationPassword(password)
     if (passwordError) return res.status(400).json({ error: passwordError })
@@ -382,6 +378,19 @@ function registerSaasRoutes(app, { prisma, requireRole, enqueueEmail }) {
         }
       }
 
+      if (enqueueEmail) {
+        await enqueueEmail({
+          to: adminEmail,
+          template: 'school_registration_received',
+          payload: {
+            firstName: adminFirstName,
+            schoolName,
+            planName: plan.name,
+            reference: paymentReference,
+          },
+        }).catch((e) => console.error('Registration email error:', e.message))
+      }
+
       res.status(201).json({
         message: 'School registered. Complete setup while we verify your payment and documents.',
         registrationId: registration.id,
@@ -473,11 +482,11 @@ function registerSaasRoutes(app, { prisma, requireRole, enqueueEmail }) {
         if (enqueueEmail) {
           await enqueueEmail({
             to: registration.adminEmail,
-            template: 'admission_confirmation',
+            template: 'school_approved',
             payload: {
-              parentName: registration.adminFirstName,
-              studentName: school.name,
-              grade: 'School Admin',
+              firstName: registration.adminFirstName,
+              schoolName: school.name,
+              loginEmail: registration.adminEmail,
             },
             schoolId: school.id,
           })
@@ -851,3 +860,5 @@ function registerSaasRoutes(app, { prisma, requireRole, enqueueEmail }) {
 }
 
 module.exports = { registerSaasRoutes }
+
+

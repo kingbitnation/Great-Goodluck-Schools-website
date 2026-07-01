@@ -162,11 +162,11 @@ jobs:
 
       - name: Build backend image
 
-        run: docker build -t ggs-backend:ci .
+        run: docker build -t schoolpilot-backend:ci .
 
 
 
       - name: Build frontend image
 
-        run: docker build -f Dockerfile.frontend -t ggs-frontend:ci .
+        run: docker build -f Dockerfile.frontend -t schoolpilot-frontend:ci .
 

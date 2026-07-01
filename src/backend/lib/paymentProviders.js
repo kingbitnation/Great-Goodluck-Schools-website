@@ -1,8 +1,9 @@
 const crypto = require('crypto')
 const { decryptSecret } = require('./credentialCrypto')
 const { APP_URL } = require('./oauthProviders')
+const { PLATFORM_PREFIX } = require('./platformBrand')
 
-function generatePaymentReference(prefix = 'GGS-PAY') {
+function generatePaymentReference(prefix = `${PLATFORM_PREFIX}-PAY`) {
   return `${prefix}-${Date.now().toString(36).toUpperCase()}`
 }
 

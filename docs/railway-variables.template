@@ -20,7 +20,8 @@ SMTP_PORT=
 SMTP_SECURE=
 SMTP_USER=
 SMTP_PASS=
-SMTP_FROM=
+SMTP_FROM_NAME=SchoolPilot
+SMTP_FROM=SchoolPilot <noreply@yourdomain.com>
 
 # Cloudinary
 CLOUDINARY_CLOUD_NAME=

@@ -9,11 +9,12 @@ const {
 } = require('../lib/financeHelpers')
 const { dispatchNotification } = require('../lib/notificationDispatcher')
 const { schoolBankDetails } = require('../lib/manualPaymentHelpers')
+const { PLATFORM_PREFIX } = require('../lib/platformBrand')
 
 function generatePaymentReference(schoolId) {
-  const schoolPart = (schoolId || 'GGS').replace(/-/g, '').slice(0, 6).toUpperCase()
+  const schoolPart = (schoolId || PLATFORM_PREFIX).replace(/-/g, '').slice(0, 6).toUpperCase()
   const suffix = crypto.randomBytes(2).toString('hex').toUpperCase()
-  return `GGS-${schoolPart}-${Date.now().toString(36).toUpperCase()}-${suffix}`
+  return `${PLATFORM_PREFIX}-${schoolPart}-${Date.now().toString(36).toUpperCase()}-${suffix}`
 }
 
 async function logVerification(prisma, { paymentId, action, note, performedById }) {

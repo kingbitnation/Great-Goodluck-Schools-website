@@ -30,7 +30,7 @@ test.describe('Authenticated UI', () => {
     })
     const { accessToken } = await loginRes.json()
     await page.addInitScript((token) => {
-      localStorage.setItem('sms_token', token)
+      localStorage.setItem('sp_token', token)
     }, accessToken)
     await page.goto('/dashboard')
     await expect(page.getByRole('heading', { name: /dashboard/i })).toBeVisible({ timeout: 15_000 })

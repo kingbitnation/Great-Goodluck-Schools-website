@@ -21,6 +21,7 @@ const {
 const { hashRefreshToken } = require('../lib/refreshTokenStore')
 const { signTwoFactorToken, verifyTwoFactorToken, JWT_SECRET, createRequirePermission } = require('../middleware/auth')
 const { notifyLoginAlert } = require('../lib/emailNotifications')
+const { evaluateSchoolAccess } = require('../lib/subscriptionHelpers')
 
 const REFRESH_SECRET = process.env.REFRESH_SECRET || 'dev_refresh_change_me'
 const REFRESH_MAX_AGE = 7 * 24 * 60 * 60
@@ -186,6 +187,13 @@ function registerAuthRoutes(app, { prisma, authRateLimiter, enqueueEmail, parseC
         return res.json({ requires2FA: true, tempToken })
       }
 
+      if (user.schoolId && user.role?.name !== 'SuperAdmin') {
+        const access = await evaluateSchoolAccess(prisma, user.schoolId, { persist: true })
+        if (!access.allowed) {
+          return res.status(403).json({ error: access.error, code: access.code })
+        }
+      }
+
       await clearFailedLogins(prisma, user.id)
       await prisma.user.update({ where: { id: user.id }, data: { lastLogin: new Date() } })
       await recordLoginAttempt(prisma, {
@@ -235,6 +243,13 @@ function registerAuthRoutes(app, { prisma, authRateLimiter, enqueueEmail, parseC
       }
 
       if (!valid) return res.status(401).json({ error: 'Invalid authentication code' })
+
+      if (user.schoolId && user.role?.name !== 'SuperAdmin') {
+        const access = await evaluateSchoolAccess(prisma, user.schoolId, { persist: true })
+        if (!access.allowed) {
+          return res.status(403).json({ error: access.error, code: access.code })
+        }
+      }
 
       await clearFailedLogins(prisma, user.id)
       await prisma.user.update({ where: { id: user.id }, data: { lastLogin: new Date() } })
@@ -605,3 +620,4 @@ function registerAuthRoutes(app, { prisma, authRateLimiter, enqueueEmail, parseC
 }
 
 module.exports = { registerAuthRoutes }
+

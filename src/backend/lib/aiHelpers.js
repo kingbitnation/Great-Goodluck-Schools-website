@@ -1,13 +1,11 @@
 const { completeChat, parseJsonResponse } = require('./aiClient')
 const { buildExamInstructions } = require('./cbtHelpers')
+const { mergeLimits } = require('./planLimits')
 
 function aiEnabledForUser(user, subscription) {
   if (user?.role === 'SuperAdmin') return true
-  const features = subscription?.plan?.features
-  if (typeof features === 'object' && features !== null) {
-    return !!features.ai
-  }
-  return false
+  const limits = mergeLimits(subscription?.plan)
+  return !!limits.ai || (limits.aiCredits || 0) > 0
 }
 
 function demoLessonPlan({ topic, subjectName, className, duration, gradeLevel }) {

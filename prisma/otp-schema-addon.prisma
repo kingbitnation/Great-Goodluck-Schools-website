@@ -1,0 +1,41 @@
+// Merge into schema.prisma when the file is not locked (after TwoFactorBackupCode model)
+
+model OtpVerification {
+  id            String    @id @default(uuid())
+  userId        String?
+  user          User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  destination   String
+  channel       String
+  purpose       String
+  codeHash      String
+  sessionToken  String    @unique
+  expiresAt     DateTime
+  attemptCount  Int       @default(0)
+  maxAttempts   Int       @default(5)
+  consumedAt    DateTime?
+  invalidatedAt DateTime?
+  lastSentAt    DateTime  @default(now())
+  ipAddress     String?
+  metadata      Json?
+  createdAt     DateTime  @default(now())
+
+  @@index([destination, purpose])
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model OtpAuditLog {
+  id          String   @id @default(uuid())
+  otpId       String?
+  destination String
+  purpose     String
+  event       String
+  userId      String?
+  ipAddress   String?
+  createdAt   DateTime @default(now())
+
+  @@index([destination])
+  @@index([createdAt])
+}
+
+// On User model add: otpVerifications OtpVerification[]

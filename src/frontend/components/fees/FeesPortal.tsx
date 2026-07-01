@@ -169,7 +169,7 @@ export default function FeesPortal({ user, studentId, title = 'Fees & Payments',
   }
 
   async function downloadReceipt(paymentId: string) {
-    const token = localStorage.getItem('sms_token')
+    const token = localStorage.getItem('sp_token') || localStorage.getItem('sms_token')
     const base = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000'
     const res = await fetch(`${base}/api/payments/${paymentId}/receipt/pdf`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},

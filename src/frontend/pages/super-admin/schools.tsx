@@ -187,10 +187,10 @@ function SchoolsPage({ user }: { user: AuthUser }) {
       </div>
 
       <div className="mb-6 flex flex-wrap gap-2">
-        <button type="button" onClick={() => setTab('pending')} className={`rounded-lg px-4 py-2 text-sm font-medium ${tab === 'pending' ? 'bg-school-navy text-white' : 'bg-slate-100'}`}>
+        <button type="button" onClick={() => setTab('pending')} className={`rounded-lg px-4 py-2 text-sm font-medium ${tab === 'pending' ? 'bg-school-navy text-white' : 'border border-school-border bg-school-surface text-school-text'}`}>
           Pending verification ({pending.length})
         </button>
-        <button type="button" onClick={() => setTab('schools')} className={`rounded-lg px-4 py-2 text-sm font-medium ${tab === 'schools' ? 'bg-school-navy text-white' : 'bg-slate-100'}`}>
+        <button type="button" onClick={() => setTab('schools')} className={`rounded-lg px-4 py-2 text-sm font-medium ${tab === 'schools' ? 'bg-school-navy text-white' : 'border border-school-border bg-school-surface text-school-text'}`}>
           All schools ({schools.length})
         </button>
       </div>

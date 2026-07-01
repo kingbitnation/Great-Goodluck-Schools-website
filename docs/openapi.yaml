@@ -7,7 +7,8 @@ info:
     OpenAPI spec also served at `GET /api/docs/openapi.yaml`.
   version: 1.0.0
   contact:
-    name: Great Goodluck Schools
+    name: SchoolPilot
+    email: support@schoolpilot.app
 servers:
   - url: http://localhost:4000
     description: Local development

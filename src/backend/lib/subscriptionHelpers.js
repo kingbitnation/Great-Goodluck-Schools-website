@@ -149,7 +149,94 @@ async function activateSubscription(prisma, {
     metadata: { planId, invoiceId, paymentId, freeMonths },
   })
 
+  const plan = await prisma.subscriptionPlan.findUnique({ where: { id: planId } })
+  const subWithPlan = { ...sub, plan }
+  const { ensureAiCredits } = require('./platformHelpers')
+  await ensureAiCredits(prisma, schoolId, subWithPlan).catch((err) => {
+    console.error('AI credit grant on activation:', err.message)
+  })
+
   return sub
+}
+
+/**
+ * Decide if a tenant school may access the platform.
+ * When persist is true, trial/grace expiry is written to the database.
+ */
+async function evaluateSchoolAccess(prisma, schoolId, { persist = false } = {}) {
+  const school = await prisma.school.findUnique({
+    where: { id: schoolId },
+    include: { subscription: { include: { plan: true } } },
+  })
+  if (!school) {
+    return { allowed: false, code: 'SCHOOL_NOT_FOUND', error: 'School not found' }
+  }
+  if (school.status === 'pending') {
+    return { allowed: false, code: 'SCHOOL_PENDING', error: 'School pending approval' }
+  }
+  if (school.status === 'suspended') {
+    return { allowed: false, code: 'SCHOOL_SUSPENDED', error: 'School account suspended' }
+  }
+
+  const sub = school.subscription
+  const now = new Date()
+
+  if (sub?.status === 'cancelled') {
+    return { allowed: false, code: 'SUBSCRIPTION_CANCELLED', error: 'Subscription cancelled' }
+  }
+
+  if (sub?.trialEndsAt && sub.trialEndsAt < now && sub.status === 'trial' && !sub.manualOverride) {
+    if (persist) {
+      await prisma.school.update({ where: { id: schoolId }, data: { status: 'suspended' } })
+      await prisma.schoolSubscription.update({
+        where: { schoolId },
+        data: { status: 'expired', suspendedAt: now },
+      })
+    }
+    return { allowed: false, code: 'TRIAL_EXPIRED', error: 'Trial expired — subscribe to reactivate' }
+  }
+
+  if (sub?.status === 'grace' && sub.graceEndsAt && sub.graceEndsAt < now && !sub.manualOverride) {
+    if (persist) {
+      await suspendSchool(prisma, schoolId, { reason: 'Subscription grace period ended' })
+      await prisma.schoolSubscription.update({
+        where: { schoolId },
+        data: { status: 'expired' },
+      })
+    }
+    return { allowed: false, code: 'SUBSCRIPTION_EXPIRED', error: 'Subscription expired — renew to continue' }
+  }
+
+  if (sub?.status === 'expired' || sub?.status === 'suspended') {
+    if (persist && school.status !== 'suspended') {
+      await prisma.school.update({ where: { id: schoolId }, data: { status: 'suspended' } })
+    }
+    return {
+      allowed: false,
+      code: 'SUBSCRIPTION_EXPIRED',
+      error: 'Subscription expired — contact platform admin to reactivate',
+    }
+  }
+
+  if (
+    sub?.currentPeriodEnd &&
+    sub.currentPeriodEnd < now &&
+    ['active', 'past_due'].includes(sub.status) &&
+    !sub.manualOverride
+  ) {
+    if (persist) {
+      const graceDays = sub.plan?.graceDays ?? 7
+      await prisma.schoolSubscription.update({
+        where: { schoolId },
+        data: {
+          status: 'grace',
+          graceEndsAt: new Date(now.getTime() + graceDays * 24 * 60 * 60 * 1000),
+        },
+      })
+    }
+  }
+
+  return { allowed: true, school, subscription: sub }
 }
 
 async function suspendSchool(prisma, schoolId, { reason, performedById } = {}) {
@@ -410,6 +497,68 @@ async function processExpiredTrials(prisma, { notify } = {}) {
   return expired.length
 }
 
+async function processExpiredSubscriptions(prisma, { notify } = {}) {
+  const now = new Date()
+  let count = 0
+
+  const graceExpired = await prisma.schoolSubscription.findMany({
+    where: {
+      status: 'grace',
+      graceEndsAt: { lt: now },
+      manualOverride: false,
+    },
+    include: { school: true },
+  })
+
+  for (const sub of graceExpired) {
+    if (sub.school.status === 'suspended' && sub.status === 'expired') continue
+    await suspendSchool(prisma, sub.schoolId, { reason: 'Subscription grace period ended' })
+    await prisma.schoolSubscription.update({
+      where: { schoolId: sub.schoolId },
+      data: { status: 'expired' },
+    })
+    count++
+    if (notify) {
+      const admin = await prisma.user.findFirst({
+        where: { schoolId: sub.schoolId, role: { name: 'SchoolAdmin' } },
+      })
+      if (admin) {
+        await notify({
+          schoolId: sub.schoolId,
+          userId: admin.id,
+          type: 'subscription_expired',
+          title: 'Subscription expired',
+          message: 'Your SchoolPilot subscription has expired. Renew to restore access.',
+          channels: ['email', 'in_app'],
+        })
+      }
+    }
+  }
+
+  const periodEnded = await prisma.schoolSubscription.findMany({
+    where: {
+      status: { in: ['active', 'past_due'] },
+      currentPeriodEnd: { lt: now },
+      manualOverride: false,
+    },
+    include: { plan: true },
+  })
+
+  for (const sub of periodEnded) {
+    const graceDays = sub.plan?.graceDays ?? 7
+    await prisma.schoolSubscription.update({
+      where: { schoolId: sub.schoolId },
+      data: {
+        status: 'grace',
+        graceEndsAt: new Date(now.getTime() + graceDays * 24 * 60 * 60 * 1000),
+      },
+    })
+    count++
+  }
+
+  return count
+}
+
 async function processRenewalReminders(prisma, { notify } = {}) {
   const in3Days = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000)
   const subs = await prisma.schoolSubscription.findMany({
@@ -531,6 +680,7 @@ module.exports = {
   applyPromoCode,
   createReceipt,
   activateSubscription,
+  evaluateSchoolAccess,
   suspendSchool,
   reactivateSchool,
   grantFreeMonths,
@@ -539,6 +689,7 @@ module.exports = {
   assertFeatureAccess,
   seedPlanFeatures,
   processExpiredTrials,
+  processExpiredSubscriptions,
   processRenewalReminders,
   processAutoRenewals,
   comparePlans,

@@ -8,6 +8,7 @@ const {
   buildSchoolSuccessMetrics,
 } = require('../lib/platformHelpers')
 const { processReferralReward } = require('../lib/referralHelpers')
+const { PLATFORM_PREFIX } = require('../lib/platformBrand')
 
 function registerPlatformRoutes(app, { prisma, requireRole }) {
   const superAdmin = requireRole('SuperAdmin')
@@ -575,7 +576,7 @@ function registerPlatformRoutes(app, { prisma, requireRole }) {
       if (!code) {
         const slug = req.user.schoolId.slice(0, 8).toUpperCase()
         code = await prisma.referralCode.create({
-          data: { schoolId: req.user.schoolId, code: `GGS-${slug}` },
+          data: { schoolId: req.user.schoolId, code: `${PLATFORM_PREFIX}-${slug}` },
           include: { conversions: true },
         })
       }

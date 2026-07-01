@@ -1,5 +1,6 @@
 const crypto = require('crypto')
 const { checkTenantAccess } = require('./tenantHelpers')
+const { PLATFORM_PREFIX } = require('./platformBrand')
 
 const CERTIFICATE_TYPES = {
   graduation: 'Certificate of Graduation',
@@ -20,7 +21,7 @@ function generateCertificateNumber(type) {
   const prefix = String(type).slice(0, 3).toUpperCase()
   const year = new Date().getFullYear()
   const suffix = crypto.randomBytes(3).toString('hex').toUpperCase()
-  return `GGS-${prefix}-${year}-${suffix}`
+  return `${PLATFORM_PREFIX}-${prefix}-${year}-${suffix}`
 }
 
 function defaultTitle(type) {

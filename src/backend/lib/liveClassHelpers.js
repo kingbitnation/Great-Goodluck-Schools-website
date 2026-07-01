@@ -1,5 +1,6 @@
 const crypto = require('crypto')
 const { tenantWhere } = require('../middleware/tenantGuard')
+const { PLATFORM_PREFIX } = require('./platformBrand')
 
 function schoolScope(user) {
   return tenantWhere(user)
@@ -16,7 +17,7 @@ function generateRoomCode() {
 
 function buildJitsiUrl(roomCode, displayName) {
   const domain = process.env.JITSI_DOMAIN || 'meet.jit.si'
-  const room = `GGS-${roomCode}`
+  const room = `${PLATFORM_PREFIX}-${roomCode}`
   const hash = [
     'config.startWithAudioMuted=true',
     'config.prejoinPageEnabled=false',

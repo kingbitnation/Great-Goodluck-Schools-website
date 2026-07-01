@@ -13,11 +13,9 @@ type Subject = {
   teacher?: { id: string; user: { firstName: string; lastName: string } } | null
 }
 
-type SubjectFormErrors = {
-  code?: string
-  name?: string
-  classId?: string
-}
+type SubjectFormErrors = { code?: string; name?: string; classId?: string }
+
+const fieldClass = 'portal-input w-full rounded-md border px-3 py-2 text-sm'
 
 function SubjectsPage({ user }: { user: AuthUser }) {
   const [subjects, setSubjects] = useState<Subject[]>([])
@@ -26,6 +24,11 @@ function SubjectsPage({ user }: { user: AuthUser }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<SubjectFormErrors>({})
+  const [query, setQuery] = useState('')
+  const [classFilter, setClassFilter] = useState('')
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(12)
+  const [total, setTotal] = useState(0)
   const [code, setCode] = useState('')
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
@@ -35,30 +38,42 @@ function SubjectsPage({ user }: { user: AuthUser }) {
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
-    setLoading(true)
     const qs = user.schoolId ? `?schoolId=${user.schoolId}` : ''
-    Promise.all([
-      apiGet<Subject[]>(`/api/subjects${qs}`),
-      apiGet<{ id: string; name: string }[]>(`/api/classes${qs}`),
-      apiGet<{ id: string; user: { firstName: string; lastName: string } }[]>(`/api/teachers${qs}`),
-    ])
-      .then(([subjectsRes, classesRes, teachersRes]) => {
-        setSubjects(subjectsRes)
-        setClasses(classesRes)
-        setTeachers(teachersRes)
-      })
+    apiGet<{ id: string; name: string }[]>(`/api/classes${qs}`)
+      .then(setClasses)
       .catch((e) => setError(e.message))
-      .finally(() => setLoading(false))
+    apiGet<{ id: string; user: { firstName: string; lastName: string } }[]>(`/api/teachers${qs}`)
+      .then(setTeachers)
+      .catch(() => {})
   }, [user.schoolId])
 
+  useEffect(() => {
+    loadPage(page)
+  }, [user.schoolId, query, classFilter, page, pageSize])
+
+  async function loadPage(p = page) {
+    setLoading(true)
+    const qs = new URLSearchParams()
+    if (user.schoolId) qs.set('schoolId', user.schoolId)
+    if (query) qs.set('q', query)
+    if (classFilter) qs.set('classId', classFilter)
+    qs.set('page', String(p))
+    qs.set('pageSize', String(pageSize))
+    try {
+      const res = await apiGet<{ data: Subject[]; total: number }>(`/api/subjects/search?${qs.toString()}`)
+      setSubjects(res.data)
+      setTotal(res.total)
+      setError(null)
+    } catch (e: any) {
+      setError(e.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   function resetForm() {
-    setCode('')
-    setName('')
-    setDescription('')
-    setClassId('')
-    setTeacherId('')
-    setFieldErrors({})
-    setEditingId(null)
+    setCode(''); setName(''); setDescription(''); setClassId(''); setTeacherId('')
+    setFieldErrors({}); setEditingId(null)
   }
 
   async function handleSaveSubject(e: FormEvent<HTMLFormElement>) {
@@ -66,28 +81,22 @@ function SubjectsPage({ user }: { user: AuthUser }) {
     setSubmitting(true)
     setError(null)
     setFieldErrors({})
-
     const validationErrors: SubjectFormErrors = {}
     if (!code.trim()) validationErrors.code = 'Subject code is required'
     if (!name.trim()) validationErrors.name = 'Subject name is required'
     if (!classId.trim()) validationErrors.classId = 'Class is required'
-
     if (Object.keys(validationErrors).length) {
       setFieldErrors(validationErrors)
       setSubmitting(false)
       return
     }
-
     try {
       const payload = { code, name, description, classId, teacherId: teacherId || undefined, schoolId: user.schoolId }
-      const saved = editingId
-        ? await apiPut<Subject>(`/api/subjects/${editingId}`, payload)
-        : await apiPost<Subject>('/api/subjects', payload)
-
-      const qs = user.schoolId ? `?schoolId=${user.schoolId}` : ''
-      const subjectsRes = await apiGet<Subject[]>(`/api/subjects${qs}`)
-      setSubjects(subjectsRes)
+      if (editingId) await apiPut(`/api/subjects/${editingId}`, payload)
+      else await apiPost('/api/subjects', payload)
       resetForm()
+      setPage(1)
+      await loadPage(1)
     } catch (err: any) {
       setError(err.message)
       if (err?.fields) setFieldErrors(err.fields)
@@ -96,7 +105,7 @@ function SubjectsPage({ user }: { user: AuthUser }) {
     }
   }
 
-  async function handleEditSubject(subject: Subject) {
+  function handleEditSubject(subject: Subject) {
     setEditingId(subject.id)
     setCode(subject.code)
     setName(subject.name)
@@ -109,7 +118,7 @@ function SubjectsPage({ user }: { user: AuthUser }) {
     if (!confirm('Delete this subject?')) return
     try {
       await apiDelete(`/api/subjects/${id}`)
-      setSubjects((prev) => prev.filter((subject) => subject.id !== id))
+      loadPage(page)
     } catch (err: any) {
       setError(err.message)
     }
@@ -117,129 +126,117 @@ function SubjectsPage({ user }: { user: AuthUser }) {
 
   return (
     <AppLayout user={user} title="Subjects">
-      <form onSubmit={handleSaveSubject} className="mb-6 rounded-lg border border-gray-200 bg-white p-5">
-        <h2 className="text-sm font-semibold text-gray-900 mb-4">Manage subjects</h2>
+      <form onSubmit={handleSaveSubject} className="content-card mb-6 p-5">
+        <h2 className="mb-4 text-sm font-semibold text-school-text">Manage subjects</h2>
         <div className="grid gap-3 md:grid-cols-2">
           <div>
-            <input
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              placeholder="Subject code"
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-            />
+            <label className="mb-1 block text-xs text-school-muted">Subject code</label>
+            <input value={code} onChange={(e) => setCode(e.target.value)} className={fieldClass} />
             {fieldErrors.code && <p className="mt-1 text-xs text-red-600">{fieldErrors.code}</p>}
           </div>
           <div>
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Subject name"
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-            />
+            <label className="mb-1 block text-xs text-school-muted">Subject name</label>
+            <input value={name} onChange={(e) => setName(e.target.value)} className={fieldClass} />
             {fieldErrors.name && <p className="mt-1 text-xs text-red-600">{fieldErrors.name}</p>}
           </div>
           <div>
-            <select
-              value={classId}
-              onChange={(e) => setClassId(e.target.value)}
-              className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
-            >
+            <label className="mb-1 block text-xs text-school-muted">Class</label>
+            <select value={classId} onChange={(e) => setClassId(e.target.value)} className={fieldClass}>
               <option value="">Select class</option>
-              {classes.map((cls) => (
-                <option key={cls.id} value={cls.id}>{cls.name}</option>
-              ))}
+              {classes.map((cls) => <option key={cls.id} value={cls.id}>{cls.name}</option>)}
             </select>
             {fieldErrors.classId && <p className="mt-1 text-xs text-red-600">{fieldErrors.classId}</p>}
           </div>
           <div>
-            <select
-              value={teacherId}
-              onChange={(e) => setTeacherId(e.target.value)}
-              className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
-            >
-              <option value="">Assign teacher (optional)</option>
-              {teachers.map((teacher) => (
-                <option key={teacher.id} value={teacher.id}>
-                  {teacher.user.firstName} {teacher.user.lastName}
-                </option>
+            <label className="mb-1 block text-xs text-school-muted">Teacher (optional)</label>
+            <select value={teacherId} onChange={(e) => setTeacherId(e.target.value)} className={fieldClass}>
+              <option value="">Unassigned</option>
+              {teachers.map((t) => (
+                <option key={t.id} value={t.id}>{t.user.firstName} {t.user.lastName}</option>
               ))}
             </select>
           </div>
           <div className="md:col-span-2">
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Description"
-              rows={3}
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-            />
+            <label className="mb-1 block text-xs text-school-muted">Description (optional)</label>
+            <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} className={fieldClass} />
           </div>
         </div>
-        <div className="mt-4 flex flex-wrap gap-3">
-          <button
-            type="submit"
-            disabled={submitting}
-            className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-          >
-            {editingId ? 'Update subject' : 'Create subject'}
-          </button>
-          {editingId && (
-            <button
-              type="button"
-              onClick={resetForm}
-              className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-            >
-              Cancel edit
-            </button>
-          )}
+        <div className="mt-4 flex gap-3">
+          <button type="submit" disabled={submitting} className="btn-gold">{editingId ? 'Update subject' : 'Create subject'}</button>
+          {editingId && <button type="button" onClick={resetForm} className="rounded border border-school-border px-4 py-2 text-sm">Cancel</button>}
         </div>
       </form>
 
-      {error && <div className="mb-4 rounded-md bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>}
+      {error && <div className="mb-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-950/30 dark:text-red-300">{error}</div>}
 
-      <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
-        <table className="min-w-full text-sm">
-          <thead className="bg-gray-50 text-left text-gray-500">
-            <tr>
-              <th className="px-4 py-3 font-medium">Code</th>
-              <th className="px-4 py-3 font-medium">Name</th>
-              <th className="px-4 py-3 font-medium">Class</th>
-              <th className="px-4 py-3 font-medium">Teacher</th>
-              <th className="px-4 py-3 font-medium">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {subjects.map((subject) => (
-              <tr key={subject.id} className="hover:bg-gray-50">
-                <td className="px-4 py-3 font-mono text-gray-700">{subject.code}</td>
-                <td className="px-4 py-3 font-medium text-gray-900">{subject.name}</td>
-                <td className="px-4 py-3 text-gray-600">{subject.class.name}</td>
-                <td className="px-4 py-3 text-gray-600">{subject.teacher ? `${subject.teacher.user.firstName} ${subject.teacher.user.lastName}` : 'Unassigned'}</td>
-                <td className="px-4 py-3 space-x-2">
-                  <button
-                    type="button"
-                    onClick={() => handleEditSubject(subject)}
-                    className="rounded bg-blue-50 px-3 py-1 text-blue-700 hover:bg-blue-100"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteSubject(subject.id)}
-                    className="rounded bg-red-50 px-3 py-1 text-red-700 hover:bg-red-100"
-                  >
-                    Delete
-                  </button>
-                </td>
-              </tr>
-            ))}
-            {subjects.length === 0 && (
+      <div className="content-card overflow-hidden">
+        <div className="flex flex-col gap-3 border-b border-school-border p-4 md:flex-row md:items-center md:justify-between">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center">
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-school-muted">Search</label>
+              <input
+                value={query}
+                onChange={(e) => { setQuery(e.target.value); setPage(1) }}
+                placeholder="Code or name"
+                className={`${fieldClass} md:w-64`}
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-school-muted">Class</label>
+              <select value={classFilter} onChange={(e) => { setClassFilter(e.target.value); setPage(1) }} className={fieldClass}>
+                <option value="">All classes</option>
+                {classes.map((cls) => <option key={cls.id} value={cls.id}>{cls.name}</option>)}
+              </select>
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-school-muted">Per page</label>
+              <select value={pageSize} onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1) }} className={fieldClass}>
+                {[12, 25, 50].map((n) => <option key={n} value={n}>{n}</option>)}
+              </select>
+            </div>
+          </div>
+          <p className="text-sm text-school-muted">Showing {subjects.length} of {total}</p>
+        </div>
+
+        {loading ? (
+          <p className="p-8 text-school-muted">Loading subjects...</p>
+        ) : subjects.length === 0 ? (
+          <p className="p-8 text-center text-school-muted">No subjects found. Create one above.</p>
+        ) : (
+          <table className="min-w-full text-sm">
+            <thead className="bg-school-bg text-left text-school-muted">
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-gray-500">No subjects found</td>
+                <th className="px-4 py-3">Code</th>
+                <th className="px-4 py-3">Name</th>
+                <th className="px-4 py-3">Class</th>
+                <th className="px-4 py-3">Teacher</th>
+                <th className="px-4 py-3">Actions</th>
               </tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-school-border">
+              {subjects.map((subject) => (
+                <tr key={subject.id}>
+                  <td className="px-4 py-3 font-mono">{subject.code}</td>
+                  <td className="px-4 py-3 font-medium">{subject.name}</td>
+                  <td className="px-4 py-3">{subject.class?.name || '—'}</td>
+                  <td className="px-4 py-3">{subject.teacher ? `${subject.teacher.user.firstName} ${subject.teacher.user.lastName}` : 'Unassigned'}</td>
+                  <td className="space-x-2 px-4 py-3">
+                    <button type="button" onClick={() => handleEditSubject(subject)} className="rounded bg-school-royal/10 px-3 py-1 text-school-royal">Edit</button>
+                    <button type="button" onClick={() => handleDeleteSubject(subject.id)} className="rounded bg-red-500/10 px-3 py-1 text-red-700 dark:text-red-300">Delete</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+
+        <div className="flex justify-between border-t border-school-border px-4 py-3">
+          <span className="text-sm text-school-muted">Page {page}</span>
+          <div className="flex gap-2">
+            <button type="button" onClick={() => setPage(Math.max(1, page - 1))} disabled={page === 1} className="rounded border border-school-border px-3 py-1 text-sm disabled:opacity-50">Prev</button>
+            <button type="button" onClick={() => setPage(page + 1)} disabled={page * pageSize >= total} className="rounded border border-school-border px-3 py-1 text-sm disabled:opacity-50">Next</button>
+          </div>
+        </div>
       </div>
     </AppLayout>
   )

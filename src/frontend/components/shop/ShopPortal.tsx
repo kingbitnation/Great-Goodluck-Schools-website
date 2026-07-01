@@ -349,7 +349,7 @@ export function ShopOrders({ basePath }: { basePath: string }) {
   }, [])
 
   function downloadReceipt(orderId: string) {
-    const token = typeof window !== 'undefined' ? localStorage.getItem('sms_token') : null
+    const token = typeof window !== 'undefined' ? (localStorage.getItem('sp_token') || localStorage.getItem('sms_token')) : null
     fetch(`${base}/api/marketplace/orders/${orderId}/receipt`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     })

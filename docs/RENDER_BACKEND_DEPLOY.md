@@ -6,7 +6,7 @@ This deploys the SchoolPilot backend (`src/backend`) and a managed PostgreSQL da
 
 1. Open Render Dashboard: [https://dashboard.render.com/blueprints](https://dashboard.render.com/blueprints)
 2. Click **New Blueprint Instance**
-3. Select repo: `kingbitnation/Great-Goodluck-Schools-website`
+3. Select your **SchoolPilot** GitHub repository
 4. Render will detect `render.yaml`
 5. Confirm creation of:
    - Web service: `schoolpilot-backend`

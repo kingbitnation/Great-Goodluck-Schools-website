@@ -10,11 +10,27 @@ const MIME_EXT = {
   'image/png': '.png',
   'image/webp': '.webp',
   'image/gif': '.gif',
+  'image/bmp': '.bmp',
+  'image/heic': '.heic',
+  'image/heif': '.heif',
   'application/pdf': '.pdf',
   'text/plain': '.txt',
+  'text/csv': '.csv',
+  'application/msword': '.doc',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': '.docx',
+  'application/vnd.ms-excel': '.xls',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': '.xlsx',
+  'application/vnd.ms-powerpoint': '.ppt',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation': '.pptx',
+  'application/zip': '.zip',
+  'application/octet-stream': '.bin',
 }
 
-const ALLOWED_MIMES = new Set(Object.keys(MIME_EXT))
+const EXT_MIME = Object.fromEntries(
+  Object.entries(MIME_EXT).map(([mime, ext]) => [ext, mime]),
+)
+
+const ALLOWED_MIMES = new Set(Object.keys(MIME_EXT).filter((m) => m !== 'application/octet-stream'))
 
 function ensureDir(subfolder = 'general') {
   const dir = path.join(UPLOAD_ROOT, subfolder)
@@ -39,8 +55,25 @@ function publicBaseUrl() {
   ).replace(/\/$/, '')
 }
 
+function inferMimeFromName(name, fallback = 'application/octet-stream') {
+  const ext = path.extname(String(name || '').toLowerCase())
+  return EXT_MIME[ext] || fallback
+}
+
+function resolveUploadMime(mime, originalName) {
+  const normalized = String(mime || '').toLowerCase()
+  if (normalized && normalized !== 'application/octet-stream' && ALLOWED_MIMES.has(normalized)) {
+    return normalized
+  }
+  const fromName = inferMimeFromName(originalName)
+  if (ALLOWED_MIMES.has(fromName)) return fromName
+  if (normalized && normalized !== 'application/octet-stream') return normalized
+  return fromName
+}
+
 async function storeLocalUpload({ fileBase64, folder = 'general', originalName }) {
-  const { mime, buffer } = parseBase64Input(fileBase64)
+  let { mime, buffer } = parseBase64Input(fileBase64)
+  mime = resolveUploadMime(mime, originalName)
   if (!buffer.length) throw new Error('Empty file payload')
   if (!ALLOWED_MIMES.has(mime)) {
     throw new Error(`File type not allowed: ${mime}`)

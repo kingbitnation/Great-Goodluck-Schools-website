@@ -1,5 +1,6 @@
 const crypto = require('crypto')
 const { checkTenantAccess } = require('./tenantHelpers')
+const { PLATFORM_PREFIX } = require('./platformBrand')
 
 function resolveSchoolId(req) {
   if (req.user?.role === 'SuperAdmin' && req.query.schoolId) return String(req.query.schoolId)
@@ -14,7 +15,7 @@ function generateCardNumber(cardType) {
   const prefix = cardType === 'staff' ? 'STF' : 'STU'
   const year = new Date().getFullYear()
   const suffix = crypto.randomBytes(3).toString('hex').toUpperCase()
-  return `GGS-ID-${prefix}-${year}-${suffix}`
+  return `${PLATFORM_PREFIX}-ID-${prefix}-${year}-${suffix}`
 }
 
 function defaultExpiry(years = 1) {

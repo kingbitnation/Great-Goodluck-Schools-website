@@ -1,22 +1,16 @@
 import { apiBaseUrl } from './apiBase'
+import { getStoredToken, setStoredToken, clearStoredToken } from './storageKeys'
 
 export function saveToken(token: string) {
-  if (typeof window !== 'undefined') {
-    localStorage.setItem('sms_token', token)
-  }
+  setStoredToken(token)
 }
 
 export function getToken(): string | null {
-  if (typeof window !== 'undefined') {
-    return localStorage.getItem('sms_token')
-  }
-  return null
+  return getStoredToken()
 }
 
 export function clearToken() {
-  if (typeof window !== 'undefined') {
-    localStorage.removeItem('sms_token')
-  }
+  clearStoredToken()
 }
 
 let refreshPromise: Promise<string | null> | null = null

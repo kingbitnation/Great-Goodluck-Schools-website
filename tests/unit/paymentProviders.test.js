@@ -11,7 +11,7 @@ const { staffNoForRole, ROLE_PROFILE_MODELS } = require('../../src/backend/lib/r
 test('generatePaymentReference returns unique prefixed refs', () => {
   const a = generatePaymentReference()
   const b = generatePaymentReference('TEST')
-  assert.match(a, /^GGS-PAY-/)
+  assert.match(a, /^SP-PAY-/)
   assert.match(b, /^TEST-/)
   assert.notEqual(a, b)
 })

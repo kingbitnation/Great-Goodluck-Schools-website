@@ -152,13 +152,13 @@ function SchoolBillingPage({ user }: { user: AuthUser }) {
     <AppLayout user={user} title="Billing & Subscription">
       <div className="mx-auto max-w-6xl space-y-8 p-6">
         {isTrial && sub.trialDaysRemaining != null && (
-          <div className={`rounded-xl border p-4 ${sub.trialDaysRemaining <= 3 ? 'border-amber-300 bg-amber-50' : 'border-school-royal/30 bg-school-royal/5'}`}>
-            <p className="font-semibold text-school-navy">
+          <div className={`rounded-xl border p-4 ${sub.trialDaysRemaining <= 3 ? 'border-amber-300 bg-amber-50 dark:border-amber-500/40 dark:bg-amber-950/30' : 'border-school-royal/30 bg-school-royal/5 dark:bg-school-royal/10'}`}>
+            <p className="font-semibold text-school-text">
               {sub.trialDaysRemaining > 0
                 ? `${sub.trialDaysRemaining} day${sub.trialDaysRemaining === 1 ? '' : 's'} left in your free trial`
                 : 'Your trial has expired'}
             </p>
-            <p className="mt-1 text-sm text-slate-600">Full access during trial. Subscribe before expiry to avoid suspension.</p>
+            <p className="mt-1 text-sm text-school-muted">Full access during trial. Subscribe before expiry to avoid suspension.</p>
           </div>
         )}
 

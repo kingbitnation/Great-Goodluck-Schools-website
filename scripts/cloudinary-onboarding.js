@@ -10,7 +10,7 @@ const SAMPLE_IMAGE = 'https://res.cloudinary.com/demo/image/upload/sample.jpg'
 
 async function main() {
   console.log('Uploading sample image...')
-  const upload = await cloudinary.uploader.upload(SAMPLE_IMAGE, { folder: 'ggs-onboarding' })
+  const upload = await cloudinary.uploader.upload(SAMPLE_IMAGE, { folder: 'schoolpilot-onboarding' })
   console.log('Secure URL:', upload.secure_url)
   console.log('Public ID:', upload.public_id)
 

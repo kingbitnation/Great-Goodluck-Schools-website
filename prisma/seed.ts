@@ -1000,7 +1000,7 @@ async function seed() {
       create: {
         courseId: lmsCourse.id,
         studentId: studentProfile.id,
-        certificateNumber: 'GGS-CERT-2026-DEMO01',
+        certificateNumber: 'SP-CERT-2026-DEMO01',
         verifyCode: 'demo-lms-verify-2026',
       },
     })
@@ -1459,39 +1459,39 @@ async function seed() {
     }
 
     await prisma.schoolCertificate.upsert({
-      where: { certificateNumber: 'GGS-GRA-2026-DEMO01' },
+      where: { certificateNumber: 'SP-GRA-2026-DEMO01' },
       update: {},
       create: {
         ...certBase,
         certificateType: 'graduation',
         title: 'Certificate of Graduation',
         description: 'Completed all graduation requirements with distinction.',
-        certificateNumber: 'GGS-GRA-2026-DEMO01',
+        certificateNumber: 'SP-GRA-2026-DEMO01',
         verifyCode: 'demo-grad-verify-2026',
       },
     })
     await prisma.schoolCertificate.upsert({
-      where: { certificateNumber: 'GGS-ATT-2026-DEMO01' },
+      where: { certificateNumber: 'SP-ATT-2026-DEMO01' },
       update: {},
       create: {
         ...certBase,
         certificateType: 'attendance',
         title: 'Certificate of Attendance',
         description: 'Maintained 98% attendance throughout the academic session.',
-        certificateNumber: 'GGS-ATT-2026-DEMO01',
+        certificateNumber: 'SP-ATT-2026-DEMO01',
         verifyCode: 'demo-attendance-verify-2026',
         metadata: { attendanceRate: 98 },
       },
     })
     await prisma.schoolCertificate.upsert({
-      where: { certificateNumber: 'GGS-EXC-2026-DEMO01' },
+      where: { certificateNumber: 'SP-EXC-2026-DEMO01' },
       update: {},
       create: {
         ...certBase,
         certificateType: 'excellence',
         title: 'Certificate of Excellence',
         description: 'Awarded for outstanding academic performance in Mathematics.',
-        certificateNumber: 'GGS-EXC-2026-DEMO01',
+        certificateNumber: 'SP-EXC-2026-DEMO01',
         verifyCode: 'demo-excellence-verify-2026',
         metadata: { award: 'Best in Mathematics' },
       },
@@ -1502,7 +1502,7 @@ async function seed() {
     expiry.setFullYear(expiry.getFullYear() + 1)
 
     await prisma.digitalIdCard.upsert({
-      where: { cardNumber: 'GGS-ID-STU-2026-DEMO01' },
+      where: { cardNumber: 'SP-ID-STU-2026-DEMO01' },
       update: {},
       create: {
         schoolId: school.id,
@@ -1513,7 +1513,7 @@ async function seed() {
         departmentOrClass: demoClass.name,
         idNumber: studentProfile.admissionNo,
         bloodType: studentProfile.bloodType,
-        cardNumber: 'GGS-ID-STU-2026-DEMO01',
+        cardNumber: 'SP-ID-STU-2026-DEMO01',
         verifyCode: 'demo-student-id-2026',
         expiresAt: expiry,
         issuedById: schoolAdmin.id,
@@ -1527,7 +1527,7 @@ async function seed() {
     const expiry = new Date()
     expiry.setFullYear(expiry.getFullYear() + 1)
     await prisma.digitalIdCard.upsert({
-      where: { cardNumber: 'GGS-ID-STF-2026-DEMO01' },
+      where: { cardNumber: 'SP-ID-STF-2026-DEMO01' },
       update: {},
       create: {
         schoolId: school.id,
@@ -1537,7 +1537,7 @@ async function seed() {
         roleLabel: employeeForId.jobTitle,
         departmentOrClass: employeeForId.department,
         idNumber: employeeForId.employeeNo,
-        cardNumber: 'GGS-ID-STF-2026-DEMO01',
+        cardNumber: 'SP-ID-STF-2026-DEMO01',
         verifyCode: 'demo-staff-id-2026',
         expiresAt: expiry,
         issuedById: schoolAdmin.id,
@@ -2120,7 +2120,7 @@ async function seed() {
       schoolId: school.id,
       smsEnabled: false,
       smsProvider: 'termii',
-      termiiSenderId: 'GGS',
+      termiiSenderId: 'SchoolPilot',
       pushEnabled: true,
       vapidPublicKey: vapidKeys.publicKey,
       vapidPrivateKey: vapidKeys.privateKey,

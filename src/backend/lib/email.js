@@ -35,7 +35,15 @@ async function resolveSmtpConfig(schoolId) {
     const schoolSmtp = smtpFromSchoolSettings(school)
     if (schoolSmtp) return schoolSmtp
   }
-  return envSmtpConfig()
+  const env = envSmtpConfig()
+  if (!env) return null
+  const fromName = process.env.SMTP_FROM_NAME || 'SchoolPilot'
+  return {
+    ...env,
+    from: env.from?.includes('<')
+      ? env.from
+      : `${fromName} <${env.from}>`,
+  }
 }
 
 let transporterCache = new Map()

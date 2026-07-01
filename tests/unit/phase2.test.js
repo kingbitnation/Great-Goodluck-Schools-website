@@ -14,7 +14,7 @@ describe('domainHelpers', () => {
 
   it('generates verification token', () => {
     const t = generateVerificationToken()
-    assert.ok(t.startsWith('ggs-verify-'))
+    assert.ok(t.startsWith('sp-verify-'))
   })
 })
 

@@ -1,5 +1,6 @@
 const crypto = require('crypto')
 const dns = require('dns').promises
+const { DOMAIN_VERIFY_PREFIX } = require('./platformBrand')
 
 function normalizeDomain(domain) {
   return String(domain || '')
@@ -14,7 +15,7 @@ function verificationHost(domain) {
 }
 
 function generateVerificationToken() {
-  return `ggs-verify-${crypto.randomBytes(16).toString('hex')}`
+  return `${DOMAIN_VERIFY_PREFIX}-${crypto.randomBytes(16).toString('hex')}`
 }
 
 async function verifyDnsTxt(domain, expectedToken) {

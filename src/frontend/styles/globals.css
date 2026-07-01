@@ -45,6 +45,22 @@
     @apply focus:border-school-royal focus:outline-none focus:ring-2 focus:ring-school-royal/20;
   }
 
+  /* Override hardcoded bg-white on admin forms */
+  .portal-input,
+  input.portal-input,
+  select.portal-input,
+  textarea.portal-input {
+    @apply !bg-school-surface !text-school-text !border-school-border;
+  }
+
+  .dark .bg-white:not(.keep-white) {
+    @apply bg-school-surface text-school-text;
+  }
+
+  .dark .text-school-navy {
+    @apply text-school-text;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     html { scroll-behavior: auto; }
     *, *::before, *::after {

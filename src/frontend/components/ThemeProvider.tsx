@@ -1,6 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
-
-export type Theme = 'light' | 'dark'
+import { getStoredTheme, setStoredTheme } from '../lib/storageKeys'
 
 type ThemeContextValue = {
   theme: Theme
@@ -16,7 +15,7 @@ const ThemeContext = createContext<ThemeContextValue>({
   mounted: false,
 })
 
-const STORAGE_KEY = 'sms_theme'
+export type Theme = 'light' | 'dark'
 
 function applyTheme(theme: Theme) {
   document.documentElement.classList.toggle('dark', theme === 'dark')
@@ -30,7 +29,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY) as Theme | null
+    const saved = getStoredTheme() as Theme | null
     const initial =
       saved ||
       (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
@@ -41,7 +40,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   function setTheme(next: Theme) {
     setThemeState(next)
-    localStorage.setItem(STORAGE_KEY, next)
+    setStoredTheme(next)
     applyTheme(next)
   }
 

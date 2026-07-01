@@ -23,6 +23,8 @@ type StudentFormErrors = {
   address?: string
 }
 
+const fieldClass = 'portal-input w-full rounded-md border px-3 py-2 text-sm'
+
 function StudentsPage({ user }: { user: AuthUser }) {
   const [students, setStudents] = useState<Student[]>([])
   const [loading, setLoading] = useState(true)
@@ -31,7 +33,7 @@ function StudentsPage({ user }: { user: AuthUser }) {
   const [query, setQuery] = useState('')
   const [classFilter, setClassFilter] = useState('')
   const [page, setPage] = useState(1)
-  const [pageSize] = useState(12)
+  const [pageSize, setPageSize] = useState(12)
   const [total, setTotal] = useState<number | null>(null)
   const [classOptions, setClassOptions] = useState<{ id: string; name: string }[]>([])
   const [selectedClassId, setSelectedClassId] = useState('')
@@ -42,7 +44,7 @@ function StudentsPage({ user }: { user: AuthUser }) {
 
   useEffect(() => {
     loadPage(page)
-  }, [user.schoolId, query, classFilter, page])
+  }, [user.schoolId, query, classFilter, page, pageSize])
 
   useEffect(() => {
     const qs = new URLSearchParams()
@@ -55,7 +57,7 @@ function StudentsPage({ user }: { user: AuthUser }) {
   const [email, setEmail] = useState('')
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
-  const [password, setPassword] = useState('password123')
+  const [password, setPassword] = useState('')
   const [admissionNo, setAdmissionNo] = useState('')
   const [dob, setDob] = useState('')
   const [gender, setGender] = useState('')
@@ -65,8 +67,8 @@ function StudentsPage({ user }: { user: AuthUser }) {
   const [importResult, setImportResult] = useState<string | null>(null)
 
   async function handleExportStudents() {
-    const token = localStorage.getItem('sms_token')
-    const base = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000'
+    const token = localStorage.getItem('sp_token') || localStorage.getItem('sms_token')
+    const base = typeof window !== 'undefined' ? '' : (process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000')
     const qs = user.schoolId ? `?schoolId=${user.schoolId}` : ''
     const res = await fetch(`${base}/api/export/students${qs}`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -112,24 +114,12 @@ function StudentsPage({ user }: { user: AuthUser }) {
     setFieldErrors({})
 
     const validationErrors: StudentFormErrors = {}
-    if (!/\S+@\S+\.\S+/.test(email)) {
-      validationErrors.email = 'Please enter a valid email'
-    }
-    if (password.length < 6) {
-      validationErrors.password = 'Password must be at least 6 characters'
-    }
-    if (!firstName.trim()) {
-      validationErrors.firstName = 'First name is required'
-    }
-    if (!lastName.trim()) {
-      validationErrors.lastName = 'Last name is required'
-    }
-    if (dob && Number.isNaN(Date.parse(dob))) {
-      validationErrors.dob = 'Date of birth is invalid'
-    }
-    if (gender && !['Male', 'Female', 'Other'].includes(gender)) {
-      validationErrors.gender = 'Please select a valid gender'
-    }
+    if (!/\S+@\S+\.\S+/.test(email)) validationErrors.email = 'Please enter a valid email'
+    if (password.length < 6) validationErrors.password = 'Password must be at least 6 characters'
+    if (!firstName.trim()) validationErrors.firstName = 'First name is required'
+    if (!lastName.trim()) validationErrors.lastName = 'Last name is required'
+    if (dob && Number.isNaN(Date.parse(dob))) validationErrors.dob = 'Date of birth is invalid'
+    if (gender && !['Male', 'Female', 'Other'].includes(gender)) validationErrors.gender = 'Please select a valid gender'
 
     if (Object.keys(validationErrors).length) {
       setFieldErrors(validationErrors)
@@ -152,7 +142,7 @@ function StudentsPage({ user }: { user: AuthUser }) {
       setEmail('')
       setFirstName('')
       setLastName('')
-      setPassword('password123')
+      setPassword('')
       setAdmissionNo('')
       setSelectedClassId('')
       setDob('')
@@ -163,9 +153,7 @@ function StudentsPage({ user }: { user: AuthUser }) {
       await loadPage(1)
     } catch (err: any) {
       setError(err.message)
-      if (err?.fields) {
-        setFieldErrors(err.fields)
-      }
+      if (err?.fields) setFieldErrors(err.fields)
     } finally {
       setSubmitting(false)
     }
@@ -183,15 +171,12 @@ function StudentsPage({ user }: { user: AuthUser }) {
       const res = await apiGet<{ data: Student[]; total: number }>(`/api/students/search?${qs.toString()}`)
       setStudents(res.data)
       setTotal(res.total)
+      setError(null)
     } catch (e: any) {
       setError(e.message)
     } finally {
       setLoading(false)
     }
-  }
-
-  function fetchPage(p = 1) {
-    setPage(p)
   }
 
   async function handleDeleteStudent(id: string) {
@@ -220,7 +205,7 @@ function StudentsPage({ user }: { user: AuthUser }) {
       setPromotionStudentId(null)
       setPromotionClassId('')
       setPromotionError(null)
-      fetchPage(page)
+      loadPage(page)
     } catch (e: any) {
       setPromotionError(e.message)
     }
@@ -231,196 +216,123 @@ function StudentsPage({ user }: { user: AuthUser }) {
   return (
     <AppLayout user={user} title="Students">
       <div className="mb-4 flex flex-wrap items-center gap-3">
-        <button type="button" onClick={handleExportStudents} className="rounded-md border border-gray-300 px-3 py-2 text-sm hover:bg-gray-50">
+        <button type="button" onClick={handleExportStudents} className="rounded-md border border-school-border px-3 py-2 text-sm text-school-text hover:bg-school-surface">
           Export CSV
         </button>
-        <label className="cursor-pointer rounded-md border border-gray-300 px-3 py-2 text-sm hover:bg-gray-50">
+        <label className="cursor-pointer rounded-md border border-school-border px-3 py-2 text-sm text-school-text hover:bg-school-surface">
           {importing ? 'Importing…' : 'Import CSV'}
           <input type="file" accept=".csv,text/csv" className="hidden" onChange={(e) => e.target.files?.[0] && handleImportCsv(e.target.files[0])} />
         </label>
         {importResult && <p className="text-sm text-green-700">{importResult}</p>}
       </div>
-      <form onSubmit={handleAddStudent} className="mb-6 rounded-lg border border-gray-200 bg-white p-5">
-        <h2 className="text-sm font-semibold text-gray-900 mb-4">Register student</h2>
-        <div className="grid gap-3 md:grid-cols-2">
+
+      <form onSubmit={handleAddStudent} className="content-card mb-6 p-5">
+        <h2 className="mb-4 text-sm font-semibold text-school-text">Register student</h2>
+        <p className="mb-4 text-xs text-school-muted">The field beside email is the student&apos;s login password (not their email again).</p>
+        <div className="grid gap-4 md:grid-cols-2">
           <div>
-            <input
-              required
-              value={email}
-              onChange={(e) => {
-                setEmail(e.target.value)
-                if (fieldErrors.email) setFieldErrors((prev) => ({ ...prev, email: undefined }))
-              }}
-              placeholder="Email"
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-            />
+            <label className="mb-1 block text-xs font-medium text-school-muted">Email</label>
+            <input required value={email} onChange={(e) => setEmail(e.target.value)} className={fieldClass} type="email" autoComplete="off" />
             {fieldErrors.email && <p className="mt-1 text-xs text-red-600">{fieldErrors.email}</p>}
           </div>
           <div>
-            <input
-              required
-              value={password}
-              onChange={(e) => {
-                setPassword(e.target.value)
-                if (fieldErrors.password) setFieldErrors((prev) => ({ ...prev, password: undefined }))
-              }}
-              placeholder="Password"
-              type="password"
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-            />
+            <label className="mb-1 block text-xs font-medium text-school-muted">Login password</label>
+            <input required value={password} onChange={(e) => setPassword(e.target.value)} className={fieldClass} type="password" autoComplete="new-password" />
             {fieldErrors.password && <p className="mt-1 text-xs text-red-600">{fieldErrors.password}</p>}
           </div>
           <div>
-            <input
-              required
-              value={firstName}
-              onChange={(e) => {
-                setFirstName(e.target.value)
-                if (fieldErrors.firstName) setFieldErrors((prev) => ({ ...prev, firstName: undefined }))
-              }}
-              placeholder="First name"
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-            />
+            <label className="mb-1 block text-xs font-medium text-school-muted">First name</label>
+            <input required value={firstName} onChange={(e) => setFirstName(e.target.value)} className={fieldClass} />
             {fieldErrors.firstName && <p className="mt-1 text-xs text-red-600">{fieldErrors.firstName}</p>}
           </div>
           <div>
-            <input
-              required
-              value={lastName}
-              onChange={(e) => {
-                setLastName(e.target.value)
-                if (fieldErrors.lastName) setFieldErrors((prev) => ({ ...prev, lastName: undefined }))
-              }}
-              placeholder="Last name"
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-            />
+            <label className="mb-1 block text-xs font-medium text-school-muted">Last name</label>
+            <input required value={lastName} onChange={(e) => setLastName(e.target.value)} className={fieldClass} />
             {fieldErrors.lastName && <p className="mt-1 text-xs text-red-600">{fieldErrors.lastName}</p>}
           </div>
           <div>
-            <select
-              value={selectedClassId}
-              onChange={(e) => setSelectedClassId(e.target.value)}
-              className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
-            >
-              <option value="">Assign class (optional)</option>
+            <label className="mb-1 block text-xs font-medium text-school-muted">Class (optional)</label>
+            <select value={selectedClassId} onChange={(e) => setSelectedClassId(e.target.value)} className={fieldClass}>
+              <option value="">No class yet</option>
               {classOptions.map((cls) => (
                 <option key={cls.id} value={cls.id}>{cls.name}</option>
               ))}
             </select>
           </div>
           <div>
-            <input
-              value={dob}
-              onChange={(e) => {
-                setDob(e.target.value)
-                if (fieldErrors.dob) setFieldErrors((prev) => ({ ...prev, dob: undefined }))
-              }}
-              placeholder="Date of birth"
-              type="date"
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-            />
+            <label className="mb-1 block text-xs font-medium text-school-muted">Date of birth (optional)</label>
+            <input value={dob} onChange={(e) => setDob(e.target.value)} className={fieldClass} type="date" />
             {fieldErrors.dob && <p className="mt-1 text-xs text-red-600">{fieldErrors.dob}</p>}
           </div>
           <div>
-            <select
-              value={gender}
-              onChange={(e) => {
-                setGender(e.target.value)
-                if (fieldErrors.gender) setFieldErrors((prev) => ({ ...prev, gender: undefined }))
-              }}
-              className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
-            >
+            <label className="mb-1 block text-xs font-medium text-school-muted">Gender (optional)</label>
+            <select value={gender} onChange={(e) => setGender(e.target.value)} className={fieldClass}>
               <option value="">Select gender</option>
               <option value="Male">Male</option>
               <option value="Female">Female</option>
               <option value="Other">Other</option>
             </select>
-            {fieldErrors.gender && <p className="mt-1 text-xs text-red-600">{fieldErrors.gender}</p>}
           </div>
           <div>
-            <input
-              value={admissionNo}
-              onChange={(e) => {
-                setAdmissionNo(e.target.value)
-                if (fieldErrors.admissionNo) setFieldErrors((prev) => ({ ...prev, admissionNo: undefined }))
-              }}
-              placeholder="Admission no."
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-            />
-            {fieldErrors.admissionNo && <p className="mt-1 text-xs text-red-600">{fieldErrors.admissionNo}</p>}
+            <label className="mb-1 block text-xs font-medium text-school-muted">Admission number (optional)</label>
+            <input value={admissionNo} onChange={(e) => setAdmissionNo(e.target.value)} className={fieldClass} placeholder="Auto-generated if empty" />
           </div>
-          <div>
-            <input
-              value={address}
-              onChange={(e) => {
-                setAddress(e.target.value)
-                if (fieldErrors.address) setFieldErrors((prev) => ({ ...prev, address: undefined }))
-              }}
-              placeholder="Address"
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-            />
-            {fieldErrors.address && <p className="mt-1 text-xs text-red-600">{fieldErrors.address}</p>}
+          <div className="md:col-span-2">
+            <label className="mb-1 block text-xs font-medium text-school-muted">Address (optional)</label>
+            <input value={address} onChange={(e) => setAddress(e.target.value)} className={fieldClass} />
           </div>
         </div>
-        <button
-          type="submit"
-          disabled={submitting}
-          className="mt-4 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-        >
+        <button type="submit" disabled={submitting} className="btn-gold mt-4">
           {submitting ? 'Registering...' : 'Register student'}
         </button>
       </form>
 
       {error && (
-        <div className="mb-4 rounded-md bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>
+        <div className="mb-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-950/30 dark:text-red-300">{error}</div>
       )}
 
       {loading ? (
-        <p className="text-gray-500">Loading students...</p>
+        <p className="text-school-muted">Loading students...</p>
       ) : students.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-gray-300 bg-white p-8 text-center">
-          <p className="text-gray-600">No students enrolled yet.</p>
-          <p className="mt-1 text-sm text-gray-400">Student registration will be added in a future update.</p>
+        <div className="content-card border-dashed p-8 text-center">
+          <p className="text-school-text">No students enrolled yet.</p>
+          <p className="mt-1 text-sm text-school-muted">Use the form above to register your first student.</p>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
-          <div className="flex flex-col gap-3 p-4 md:flex-row md:items-center md:justify-between">
+        <div className="content-card overflow-hidden">
+          <div className="flex flex-col gap-3 border-b border-school-border p-4 md:flex-row md:items-center md:justify-between">
             <div className="flex flex-col gap-3 md:flex-row md:items-center">
               <div className="flex items-center gap-2">
-                <label className="text-sm text-gray-600">Search</label>
+                <label className="text-sm text-school-muted">Search</label>
                 <input
                   value={query}
-                  onChange={(e) => {
-                    setQuery(e.target.value)
-                    setPage(1)
-                  }}
-                  placeholder="Search by name, email, or admission no"
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm md:w-96"
+                  onChange={(e) => { setQuery(e.target.value); setPage(1) }}
+                  placeholder="Name, email, or admission no."
+                  className={`${fieldClass} md:w-80`}
                 />
               </div>
               <div className="flex items-center gap-2">
-                <label className="text-sm text-gray-600">Class</label>
-                <select
-                  value={classFilter}
-                  onChange={(e) => {
-                    setClassFilter(e.target.value)
-                    setPage(1)
-                  }}
-                  className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
-                >
+                <label className="text-sm text-school-muted">Class</label>
+                <select value={classFilter} onChange={(e) => { setClassFilter(e.target.value); setPage(1) }} className={fieldClass}>
                   <option value="">All classes</option>
                   {classOptions.map((cls) => (
                     <option key={cls.id} value={cls.id}>{cls.name}</option>
                   ))}
                 </select>
               </div>
+              <div className="flex items-center gap-2">
+                <label className="text-sm text-school-muted">Per page</label>
+                <select value={pageSize} onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1) }} className={fieldClass}>
+                  {[12, 25, 50, 100].map((n) => (
+                    <option key={n} value={n}>{n}</option>
+                  ))}
+                </select>
+              </div>
             </div>
-            <div className="text-sm text-gray-500">
-              Showing {students.length} of {total ?? 0}
-            </div>
+            <div className="text-sm text-school-muted">Showing {students.length} of {total ?? 0}</div>
           </div>
           <table className="min-w-full text-sm">
-            <thead className="bg-gray-50 text-left text-gray-500">
+            <thead className="bg-school-bg text-left text-school-muted">
               <tr>
                 <th className="px-4 py-3 font-medium">Admission No</th>
                 <th className="px-4 py-3 font-medium">Name</th>
@@ -429,113 +341,50 @@ function StudentsPage({ user }: { user: AuthUser }) {
                 <th className="px-4 py-3 font-medium">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-school-border">
               {students.map((s) => (
-                <tr key={s.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 font-mono text-gray-700">{s.admissionNo}</td>
-                  <td className="px-4 py-3 font-medium text-gray-900">
-                    {s.user.firstName} {s.user.lastName}
-                  </td>
-                  <td className="px-4 py-3 text-gray-600">{s.user.email}</td>
+                <tr key={s.id} className="hover:bg-school-bg/50">
+                  <td className="px-4 py-3 font-mono">{s.admissionNo}</td>
+                  <td className="px-4 py-3 font-medium">{s.user.firstName} {s.user.lastName}</td>
+                  <td className="px-4 py-3 text-school-muted">{s.user.email}</td>
                   <td className="px-4 py-3">{s.class?.name || 'Unassigned'}</td>
-                  <td className="px-4 py-3 space-x-2">
-                    <button
-                      type="button"
-                      onClick={() => router.push(`/admin/students/${s.id}`)}
-                      className="rounded bg-blue-50 px-3 py-1 text-blue-700 hover:bg-blue-100"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => startPromotion(s.id)}
-                      className="rounded bg-green-50 px-3 py-1 text-green-700 hover:bg-green-100"
-                    >
-                      Promote
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteStudent(s.id)}
-                      className="rounded bg-red-50 px-3 py-1 text-red-700 hover:bg-red-100"
-                    >
-                      Delete
-                    </button>
+                  <td className="space-x-2 px-4 py-3">
+                    <button type="button" onClick={() => router.push(`/admin/students/${s.id}`)} className="rounded bg-school-royal/10 px-3 py-1 text-school-royal">Edit</button>
+                    <button type="button" onClick={() => startPromotion(s.id)} className="rounded bg-green-500/10 px-3 py-1 text-green-700 dark:text-green-300">Promote</button>
+                    <button type="button" onClick={() => handleDeleteStudent(s.id)} className="rounded bg-red-500/10 px-3 py-1 text-red-700 dark:text-red-300">Delete</button>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-          <div className="flex flex-col gap-3 border-t border-gray-200 bg-gray-50 px-4 py-3 md:flex-row md:items-center md:justify-between">
-            <div className="text-sm text-gray-600">Page {page}</div>
-            <div className="flex flex-col gap-2 md:flex-row md:items-center">
-              <span className="text-sm text-gray-600">Page size: {pageSize}</span>
-              <button
-                type="button"
-                onClick={() => fetchPage(Math.max(1, page - 1))}
-                disabled={page === 1}
-                className="rounded border border-gray-300 bg-white px-3 py-1 text-sm text-gray-700 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                Prev
-              </button>
-              <button
-                type="button"
-                onClick={() => fetchPage(page + 1)}
-                disabled={total !== null && page * pageSize >= total}
-                className="rounded border border-gray-300 bg-white px-3 py-1 text-sm text-gray-700 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                Next
-              </button>
+          <div className="flex flex-col gap-3 border-t border-school-border bg-school-bg/50 px-4 py-3 md:flex-row md:items-center md:justify-between">
+            <div className="text-sm text-school-muted">Page {page}</div>
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setPage(Math.max(1, page - 1))} disabled={page === 1} className="rounded border border-school-border px-3 py-1 text-sm disabled:opacity-50">Prev</button>
+              <button type="button" onClick={() => setPage(page + 1)} disabled={total !== null && page * pageSize >= total} className="rounded border border-school-border px-3 py-1 text-sm disabled:opacity-50">Next</button>
             </div>
           </div>
         </div>
       )}
+
       {promotionStudentId && (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-lg rounded-xl border border-yellow-200 bg-white p-5 shadow-xl">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-lg font-semibold text-yellow-900">Promote student</p>
-                <p className="mt-1 text-sm text-yellow-700">
-                  Assign {selectedPromotionStudent ? `${selectedPromotionStudent.user.firstName} ${selectedPromotionStudent.user.lastName}` : 'this student'} to a new class.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setPromotionStudentId(null)}
-                className="rounded border border-yellow-300 bg-white px-3 py-1 text-sm text-yellow-900 hover:bg-yellow-100"
-              >
-                Close
-              </button>
+          <div className="content-card w-full max-w-lg p-5 shadow-xl">
+            <p className="text-lg font-semibold">Promote student</p>
+            <p className="mt-1 text-sm text-school-muted">
+              Assign {selectedPromotionStudent ? `${selectedPromotionStudent.user.firstName} ${selectedPromotionStudent.user.lastName}` : 'this student'} to a new class.
+            </p>
+            <select value={promotionClassId} onChange={(e) => setPromotionClassId(e.target.value)} className={`${fieldClass} mt-4`}>
+              <option value="">Choose destination class</option>
+              {classOptions.map((cls) => (
+                <option key={cls.id} value={cls.id}>{cls.name}</option>
+              ))}
+            </select>
+            <div className="mt-4 flex justify-end gap-2">
+              <button type="button" onClick={() => setPromotionStudentId(null)} className="rounded border border-school-border px-4 py-2 text-sm">Cancel</button>
+              <button type="button" onClick={confirmPromotion} className="btn-gold">Promote student</button>
             </div>
-            <div className="mt-5 flex flex-col gap-4">
-              <select
-                value={promotionClassId}
-                onChange={(e) => setPromotionClassId(e.target.value)}
-                className="w-full rounded-md border border-yellow-300 bg-white px-3 py-2 text-sm"
-              >
-                <option value="">Choose destination class</option>
-                {classOptions.map((cls) => (
-                  <option key={cls.id} value={cls.id}>{cls.name}</option>
-                ))}
-              </select>
-              <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
-                <button
-                  type="button"
-                  onClick={() => setPromotionStudentId(null)}
-                  className="rounded border border-slate-300 bg-white px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={confirmPromotion}
-                  className="rounded bg-yellow-600 px-4 py-2 text-sm font-medium text-white hover:bg-yellow-700"
-                >
-                  Promote student
-                </button>
-              </div>
-              {promotionError && <p className="text-sm text-red-700">{promotionError}</p>}
-            </div>
+            {promotionError && <p className="mt-2 text-sm text-red-600">{promotionError}</p>}
           </div>
         </div>
       )}
