@@ -90,7 +90,7 @@ function registerSaasRoutes(app, { prisma, requireRole, enqueueEmail }) {
     }
   })
 
-  app.post('/api/public/schools/register/phone/send', authRateLimiter, async (req, res) => {
+  app.post('/api/public/schools/register/phone/send', authRateLimiter(), async (req, res) => {
     try {
       const phone = normalizeNgPhone(req.body.phone)
       if (!phone) return res.status(400).json({ error: 'Enter a valid Nigerian phone number' })

@@ -247,6 +247,7 @@ async function verifyOtp(prisma, { sessionToken, code, ipAddress = null }) {
     destination: record.destination,
     channel: record.channel,
     sessionToken: record.sessionToken,
+    metadata: record.metadata,
   }
 }
 
@@ -301,8 +302,14 @@ async function assertVerifiedSession(prisma, sessionToken, purpose, destination 
   if (record.purpose !== purpose) {
     throw Object.assign(new Error('Invalid verification purpose'), { code: 'INVALID_PURPOSE' })
   }
-  if (destination && record.destination !== destination) {
-    throw Object.assign(new Error('Verification does not match destination'), { code: 'DESTINATION_MISMATCH' })
+  if (destination) {
+    const metaPhone = record.metadata?.phone
+    const matches =
+      record.destination === destination ||
+      (metaPhone && String(metaPhone) === String(destination))
+    if (!matches) {
+      throw Object.assign(new Error('Verification does not match destination'), { code: 'DESTINATION_MISMATCH' })
+    }
   }
   const maxAge = otpConfig().expiryMinutes * 60 * 1000
   if (record.consumedAt.getTime() + maxAge < Date.now()) {

@@ -19,6 +19,9 @@ export async function parseJsonResponse<T = Record<string, unknown>>(res: Respon
         'Server returned HTML instead of JSON. Is the API running? Rebuild with docker compose or start the backend on port 4000.',
       )
     }
-    throw new Error('Invalid server response')
+    if (/^Redirecting/i.test(text.trim()) || text.trim().startsWith('redirect')) {
+      throw new Error('API request was redirected. Check BACKEND_URL on Vercel points to your Railway backend.')
+    }
+    throw new Error(`Invalid server response: ${text.slice(0, 120)}`)
   }
 }

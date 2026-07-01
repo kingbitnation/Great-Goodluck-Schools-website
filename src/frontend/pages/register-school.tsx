@@ -251,10 +251,23 @@ export default function RegisterSchool() {
       const res = await fetch(`${apiBaseUrl()}/api/public/schools/register/phone/send`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: form.adminPhone }),
+        body: JSON.stringify({
+          phone: form.adminPhone,
+          email: form.adminEmail || undefined,
+          adminEmail: form.adminEmail || undefined,
+        }),
       })
-      const body = await parseJsonResponse<{ error?: string; message?: string; devCode?: string; smsHint?: string }>(res)
+      const body = await parseJsonResponse<{
+        error?: string
+        message?: string
+        devCode?: string
+        smsHint?: string
+        sessionToken?: string
+        phoneVerificationToken?: string
+      }>(res)
       if (!res.ok) throw new Error(body.error || 'Could not send code')
+      const token = body.phoneVerificationToken || body.sessionToken || ''
+      if (token) setPhoneVerificationToken(token)
       if (body.devCode) {
         setPhoneDevHint(
           body.smsHint
@@ -278,7 +291,12 @@ export default function RegisterSchool() {
       const res = await fetch(`${apiBaseUrl()}/api/public/schools/register/phone/verify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: form.adminPhone, code: phoneCode }),
+        body: JSON.stringify({
+          phone: form.adminPhone,
+          code: phoneCode,
+          sessionToken: phoneVerificationToken,
+          phoneVerificationToken,
+        }),
       })
       const body = await parseJsonResponse<{ error?: string; phoneVerificationToken?: string }>(res)
       if (!res.ok) throw new Error(body.error || 'Verification failed')
@@ -716,6 +734,9 @@ export default function RegisterSchool() {
                   />
                   <div className="rounded-xl border border-school-border p-4 space-y-3">
                     <p className="text-sm font-medium text-school-navy">Verify phone number *</p>
+                    <p className="text-xs text-slate-600">
+                      Fill in your admin email above first. If SMS is unavailable, the code will be sent to your email instead.
+                    </p>
                     <input
                       placeholder="Phone (e.g. 08012345678) *"
                       value={form.adminPhone}
